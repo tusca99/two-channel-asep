@@ -1,0 +1,21 @@
+name: "two-channel-asep-rules"
+description: "Working rules for the two-channel ASEP project"
+version: "1.0"
+
+rules:
+  - "Keep all responses under 4 lines of prose when possible"
+  - "Make small, focused changes (max ~200 lines per edit)"
+  - "Always verify with tests before moving to the next task"
+  - "Document theory inline and in /theory/"
+  - "Never modify the model rules (entrance/exit conditions) without checking against paper §2.1"
+  - "When reproducing figures, match the paper's parameters exactly"
+
+workflow:
+  plan: "Check todo.md first. Plan the next 1-2 steps."
+  build: "Write code → run tests → update todo.md"
+  verify: "Run tests after every change"
+
+coding:
+  python: "3.10+ with type hints where helpful"
+  style: "minimal docstrings, clean functions"
+  testing: "pytest-compatible, run with .venv/bin/python"
