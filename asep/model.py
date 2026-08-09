@@ -1,4 +1,5 @@
 import numpy as np
+from .mc import mc_step_numba, run_mc_batched
 
 
 class TwoChannelASEP:
@@ -29,12 +30,13 @@ class TwoChannelASEP:
         Random seed for reproducibility
     """
 
-    def __init__(self, L: int, alpha: float, beta: float, seed: int = 42):
+    def __init__(self, L: int, alpha: float, beta: float, seed: int = 42, use_numba: bool = True):
         self.L = L
         self.alpha = alpha
         self.beta = beta
         self.seed = seed
         self.rng = np.random.default_rng(seed)
+        self.use_numba = use_numba
 
         self.lane1 = np.zeros(L, dtype=np.int8)
         self.lane2 = np.zeros(L, dtype=np.int8)
