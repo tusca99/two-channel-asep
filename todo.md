@@ -1,26 +1,33 @@
 # TODO — Two-Channel ASEP
 
-## Phase 1: Foundation
-- [x] Basic TwoChannelASEP class (Gillespie/MC step)
-- [x] Test LD, MC, HD/LD phases
-- [x] Verify entrance logic (blocked by exit site of other lane)
-- [x] Density profile measurement
+## Current State: Paper Reading Phase
+- [x] Repo scaffold created (public, uv-based)
+- [x] Basic TwoChannelASEP class (pure Python, Gillespie step) — WORKING
+- [x] Phase scanner (classifies LD/MC/HD-LDD/LD-LDL) — WORKING
+- [x] Theory notes draft — MFT derivation, phase table
+- [x] OpenCode agent context (.opencode/, CLAUDE.md) — set up
+- [ ] Numba acceleration module — written, UNTESTED
 
-## Phase 2: Reproduce Key Results
-- [x] Phase diagram scanner working (classifies LD, MC, HD/LD, LD/LD)
-- [x] Verify MFT deviations at large α,β (confirmed: MC current ~0.21 vs 0.25)
-- [ ] Refine classification thresholds (some borderline points misclassified)
-- [ ] Reproduce Figure 6: Currents & densities for α=0.9
-- [ ] Finite-size scaling (L=100,500,1000,2000) for HD/LD and LD/LD phases
-- [ ] Finite-size scaling of LD/LD phase (does it disappear?)
-- [ ] Density distribution P(ρ₁,ρ₂) for symmetry breaking detection
+## Next: Code Structure Design (Tomorrow)
+After reading the paper, decide on:
+- [ ] Core abstraction: Model class vs. Simulator class
+- [ ] MC backend strategy: pure Python → numba → CUDA (when needed)
+- [ ] Observation strategy: streaming vs. batch sampling
+- [ ] Phase detection: threshold-based vs. clustering vs. density distribution P(ρ₁,ρ₂)
+- [ ] Finite-size scaling plan: which L values, which observables
+- [ ] Reproducibility: checkpoints, random seeds, data logging format
 
-## Phase 3: Extension (if time allows)
-- [ ] Option A: Asymmetric hopping rates (v₁≠v₂)
-- [ ] Option B: Wider entrance coupling (bulk ↔ bulk)
-- [ ] GPU port with CUDA (if A100/H100 needed)
+## Long Term (Post Paper Read)
+### Phase 2: Reproduce Key Results
+- [ ] Reproduce Figure 2: Phase diagram
+- [ ] Reproduce Figure 6: Currents & densities
+- [ ] Finite-size scaling of LD/LD phase
+- [ ] Density distribution P(ρ₁,ρ₂) for SSB detection
 
-## Phase 4: Presentation
-- [ ] Beamer slides (60-min structure)
-- [ ] Live code demo notebook
-- [ ] Theory summary handout
+### Phase 3: Extension
+- [ ] Asymmetric rates? Wider entrances? 3-channel?
+- [ ] GPU port
+
+### Phase 4: Presentation
+- [ ] Beamer slides
+- [ ] Live demo notebook
