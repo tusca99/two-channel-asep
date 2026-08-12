@@ -27,6 +27,8 @@ After reading the paper, decide on:
 ### Phase 3: Extension
 - [ ] Asymmetric rates? Wider entrances? 3-channel?
 - [ ] GPU port
+- [ ] Parallelize phase-diagram scans (grid points are independent; currently single-core, not fully utilized)
+- [ ] GPU acceleration of the numba MC kernel (CUDA) for large-L / long runs
 
 ### Phase 4: Presentation
 - [ ] Beamer slides

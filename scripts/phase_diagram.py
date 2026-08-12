@@ -94,13 +94,19 @@ def plot_mc_grid(ax, alphas, betas, grid):
 
 
 def add_phase_legend(ax):
-    """Legend for the colored MC phase points."""
-    handles = [
+    """Legend for the colored MC phase points and the MFT boundary lines."""
+    phase_handles = [
         plt.Line2D([0], [0], marker="o", color="w", markerfacecolor=c,
                    markeredgecolor="k", markersize=7, label=label)
         for label, c in PHASE_COLORS.items()
     ]
-    ax.legend(handles=handles, loc="upper left", fontsize=8, title="MC phase")
+    line_handles = [
+        plt.Line2D([0], [0], color="k", ls="-", lw=1.5, label="LD/MC (eq 10)"),
+        plt.Line2D([0], [0], color="k", ls="--", lw=1.5, label="HD/LD (eq 23)"),
+        plt.Line2D([0], [0], color="k", ls=":", lw=1.5, label="LD/LD (eq 33)"),
+    ]
+    ax.legend(handles=phase_handles + line_handles, loc="upper left",
+              fontsize=7, title="MC phase / MFT lines")
 
 
 def main():
@@ -109,10 +115,16 @@ def main():
     warmup = 30_000
     sample_every = 200
 
+    # (a) full parameter space: coarse grid
     alphas = np.linspace(0.05, 0.95, 31)
     betas = np.linspace(0.05, 0.95, 31)
-
     grid = scan_phase_diagram(alphas, betas, L, n_steps, warmup, sample_every)
+
+    # (b) zoom on 0.2 < beta < 0.4: finer grid to resolve the thin LD/LD band
+    zoom_alphas = np.linspace(0.05, 0.95, 31)
+    zoom_betas = np.linspace(0.2, 0.4, 21)
+    zoom_grid = scan_phase_diagram(zoom_alphas, zoom_betas, L, n_steps, warmup,
+                                   sample_every, seed=1)
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
@@ -127,16 +139,16 @@ def main():
     add_phase_legend(ax)
     ax.set_title("(a) Full parameter space")
 
-    # (b) zoom on 0.2 < beta < 0.4 (as in paper Fig 2b)
+    # (b) zoom on 0.2 < beta < 0.4 (as in paper Fig 2b), finer grid
     ax = axes[1]
     plot_mft_boundaries(ax)
-    plot_mc_grid(ax, alphas, betas, grid)
+    plot_mc_grid(ax, zoom_alphas, zoom_betas, zoom_grid)
     ax.set_xlabel(r"$\alpha$")
     ax.set_ylabel(r"$\beta$")
     ax.set_xlim(0, 1)
     ax.set_ylim(0.2, 0.4)
     add_phase_legend(ax)
-    ax.set_title(r"(b) Zoom: $0.2<\beta<0.4$")
+    ax.set_title(r"(b) Zoom: $0.2<\beta<0.4$ (finer grid)")
 
     fig.suptitle("Two-channel ASEP phase diagram (MFT lines + MC points)")
     fig.tight_layout()
