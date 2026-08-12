@@ -4,11 +4,23 @@ Numba-accelerated Monte Carlo step for the two-channel ASEP.
 This module provides a compiled (Numba/JIT) version of the Gillespie
 continuous-time MC step for the two-channel ASEP with narrow entrances.
 
-Performance: ~50-100x faster than the pure Python step() in model.py.
+Randomness
+----------
+To keep results fully reproducible, the kernel does NOT use numba's internal
+RNG (which is seeded once per process and cannot be reseeded). Instead, the
+caller generates the needed uniform(0,1) draws from a numpy ``Generator``
+created with the desired seed and passes them in as an array. Each MC step
+consumes at most 2 uniforms:
+    - u1 : exponential time advance  dt = -log(u1) / total_rate
+    - u2 : move selection           r  = u2 * total_rate
+When the system is fully blocked (no moves) no uniform is consumed and the
+time is advanced by a small fixed amount.
 """
 import numpy as np
-from numba import njit, types
-from numba.typed import List
+from numba import njit
+
+# Max uniforms consumed per step (time draw + selection draw).
+_PER_STEP = 2
 
 
 @njit(cache=True, fastmath=True)
@@ -89,11 +101,13 @@ def _execute_move(lane1, lane2, mtype, site):
 
 
 @njit(cache=True, fastmath=True)
-def mc_step_numba(lane1, lane2, alpha, beta):
+def mc_step_numba(lane1, lane2, alpha, beta, uniforms, u_idx):
     """
     One Gillespie (continuous-time) step, JIT-compiled with Numba.
 
-    Uses numba's internal RNG (np.random.random() and np.random.exponential()).
+    Random draws come from ``uniforms`` (a caller-supplied array of
+    uniform(0,1) values drawn from a seeded numpy Generator); ``u_idx`` is
+    the running index into that array. At most two uniforms are consumed.
 
     Parameters
     ----------
@@ -103,32 +117,35 @@ def mc_step_numba(lane1, lane2, alpha, beta):
         Entrance rate
     beta : float
         Exit rate
+    uniforms : float64 array
+        Pre-generated uniform(0,1) draws
+    u_idx : int
+        Index of the next unused uniform (updated in-place via return)
 
     Returns
     -------
-    dt : float
-        Time advance for this step
-    exited_ch1 : int
-        1 if a particle exited channel 1, else 0
-    exited_ch2 : int
-        1 if a particle exited channel 2, else 0
+    (dt, exited_ch1, exited_ch2, new_u_idx) : (float, int, int, int)
     """
     move_types, move_sites, move_rates = _collect_moves(lane1, lane2, alpha, beta)
     n_moves = move_types.shape[0]
 
     if n_moves == 0:
-        return 0.001, 0, 0
+        return 0.001, 0, 0, u_idx
 
     # Total rate
     total_rate = 0.0
     for j in range(n_moves):
         total_rate += move_rates[j]
 
-    # Time advance
-    dt = -np.log(np.random.random()) / total_rate
+    # Time advance  dt = -log(u1) / total_rate
+    u1 = uniforms[u_idx]
+    u_idx += 1
+    dt = -np.log(u1) / total_rate
 
-    # Select move
-    r = np.random.random() * total_rate
+    # Select move proportional to its rate
+    u2 = uniforms[u_idx]
+    u_idx += 1
+    r = u2 * total_rate
     cum = 0.0
     selected = n_moves - 1
     for j in range(n_moves):
@@ -146,24 +163,48 @@ def mc_step_numba(lane1, lane2, alpha, beta):
 
     _execute_move(lane1, lane2, mtype, site)
 
-    return dt, exited_ch1, exited_ch2
+    return dt, exited_ch1, exited_ch2, u_idx
 
 
 @njit(cache=True, fastmath=True)
-def run_mc_batched(lane1, lane2, alpha, beta, n_steps):
+def run_mc_batched(lane1, lane2, alpha, beta, n_steps, uniforms):
     """
     Run n_steps of continuous-time MC.
+
+    ``uniforms`` must provide at least ``2 * n_steps`` uniform(0,1) draws
+    (the kernel consumes at most 2 per step; blocked steps consume none).
 
     Returns: total_time, n_exit1, n_exit2
     """
     total_time = 0.0
     n_exit1 = 0
     n_exit2 = 0
+    u_idx = 0
 
     for _ in range(n_steps):
-        dt, e1, e2 = mc_step_numba(lane1, lane2, alpha, beta)
+        dt, e1, e2, u_idx = mc_step_numba(
+            lane1, lane2, alpha, beta, uniforms, u_idx
+        )
         total_time += dt
         n_exit1 += e1
         n_exit2 += e2
 
     return total_time, n_exit1, n_exit2
+
+
+def make_uniforms(n_steps, rng):
+    """
+    Generate the uniform(0,1) stream needed for ``n_steps`` MC steps.
+
+    Parameters
+    ----------
+    n_steps : int
+        Number of MC steps to run
+    rng : numpy Generator
+        Seeded random generator
+
+    Returns
+    -------
+    np.ndarray of shape (2 * n_steps,)
+    """
+    return rng.random(2 * n_steps)

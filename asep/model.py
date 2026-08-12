@@ -1,5 +1,5 @@
 import numpy as np
-from .mc import mc_step_numba, run_mc_batched
+from .mc import run_mc_batched, make_uniforms
 
 
 class TwoChannelASEP:
@@ -14,8 +14,8 @@ class TwoChannelASEP:
     - Hard-core exclusion: max 1 particle per site
 
     Narrow entrance coupling:
-    - Particle enters channel 1 at site 0 (rate alpha) ONLY if lane2[L-1] is empty
-    - Particle enters channel 2 at site L-1 (rate alpha) ONLY if lane1[0] is empty
+    - Particle enters channel 1 at site 0 (rate alpha) ONLY if lane2[0] (exit of ch2) is empty
+    - Particle enters channel 2 at site L-1 (rate alpha) ONLY if lane1[L-1] (exit of ch1) is empty
     - Exits (rate beta) are independent of the other channel
 
     Parameters
@@ -30,13 +30,12 @@ class TwoChannelASEP:
         Random seed for reproducibility
     """
 
-    def __init__(self, L: int, alpha: float, beta: float, seed: int = 42, use_numba: bool = True):
+    def __init__(self, L: int, alpha: float, beta: float, seed: int = 42):
         self.L = L
         self.alpha = alpha
         self.beta = beta
         self.seed = seed
-        self.rng = np.random.default_rng(seed)
-        self.use_numba = use_numba
+        self._rng = np.random.default_rng(seed)
 
         self.lane1 = np.zeros(L, dtype=np.int8)
         self.lane2 = np.zeros(L, dtype=np.int8)
@@ -45,7 +44,6 @@ class TwoChannelASEP:
         self.total_time = 0.0
         self.current1 = 0  # number of particles exited from channel 1
         self.current2 = 0  # number of particles exited from channel 2
-        self.n_attempts = 0
 
         # Sampling
         self._density_samples1 = []
@@ -55,89 +53,9 @@ class TwoChannelASEP:
         self._site_density2 = np.zeros(L, dtype=np.float64)
         self._n_samples = 0
 
-    def step(self):
-        """
-        One Gillespie (continuous-time) Monte Carlo step.
-
-        Collects all possible moves with their rates, computes total rate,
-        picks a move proportional to its rate, and advances time by dt ~ Exp(total_rate).
-        """
-        L = self.L
-        lane1 = self.lane1
-        lane2 = self.lane2
-        alpha = self.alpha
-        beta = self.beta
-
-        # Collect all possible moves as (description, site, rate)
-        moves = []
-
-        # Bulk hopping: channel 1 right (site i -> i+1), channel 2 left (site i -> i-1)
-        for i in range(L - 1):
-            if lane1[i] == 1 and lane1[i + 1] == 0:
-                moves.append(('hop1_right', i, 1.0))
-            if lane2[i + 1] == 1 and lane2[i] == 0:
-                moves.append(('hop2_left', i + 1, 1.0))
-
-        # Entrance events
-        # Enter channel 1 at site 0: requires lane1[0]=0 AND lane2[0] (exit site of ch2)=0
-        if lane1[0] == 0 and lane2[0] == 0:
-            moves.append(('enter1', 0, alpha))
-        # Enter channel 2 at site L-1: requires lane2[L-1]=0 AND lane1[L-1] (exit site of ch1)=0
-        if lane2[L - 1] == 0 and lane1[L - 1] == 0:
-            moves.append(('enter2', L - 1, alpha))
-
-        # Exit events (independent of other channel)
-        if lane1[L - 1] == 1:
-            moves.append(('exit1', L - 1, beta))
-        if lane2[0] == 1:
-            moves.append(('exit2', 0, beta))
-
-        if not moves:
-            # System fully blocked - advance time with a minimal step
-            self.total_time += 0.001
-            return
-
-        total_rate = sum(m[2] for m in moves)
-        dt = self.rng.exponential(1.0 / total_rate)
-        self.total_time += dt
-
-        # Select one move proportional to its rate
-        r = self.rng.random() * total_rate
-        cum = 0.0
-        for desc, site, rate in moves:
-            cum += rate
-            if r <= cum:
-                self._apply_move(desc, site)
-                break
-
-        self.n_attempts += 1
-
-    def _apply_move(self, desc: str, site: int):
-        """Execute a single move on the lattices."""
-        L = self.L
-        lane1 = self.lane1
-        lane2 = self.lane2
-
-        if desc == 'hop1_right':
-            lane1[site] = 0
-            lane1[site + 1] = 1
-        elif desc == 'hop2_left':
-            lane2[site] = 0
-            lane2[site - 1] = 1
-        elif desc == 'enter1':
-            lane1[0] = 1
-        elif desc == 'enter2':
-            lane2[L - 1] = 1
-        elif desc == 'exit1':
-            lane1[L - 1] = 0
-            self.current1 += 1
-        elif desc == 'exit2':
-            lane2[0] = 0
-            self.current2 += 1
-
     def run(self, n_steps: int, sample_every: int = 100, warmup: int = 0):
         """
-        Run the simulation for `n_steps` Gillespie steps.
+        Run the simulation for `n_steps` Gillespie steps via the numba kernel.
 
         Parameters
         ----------
@@ -148,9 +66,19 @@ class TwoChannelASEP:
         warmup : int
             Number of initial steps to discard before sampling
         """
-        for i in range(n_steps):
-            self.step()
-            if i > warmup and i % sample_every == 0:
+        block = 1000
+        done = 0
+        while done < n_steps:
+            step = min(block, n_steps - done)
+            uniforms = make_uniforms(step, self._rng)
+            dt, e1, e2 = run_mc_batched(
+                self.lane1, self.lane2, self.alpha, self.beta, step, uniforms
+            )
+            self.total_time += dt
+            self.current1 += e1
+            self.current2 += e2
+            done += step
+            if done > warmup and done % sample_every < block:
                 self._density_samples1.append(np.mean(self.lane1))
                 self._density_samples2.append(np.mean(self.lane2))
                 self._time_samples.append(self.total_time)
@@ -190,13 +118,13 @@ class TwoChannelASEP:
         return self._site_density1 / self._n_samples, self._site_density2 / self._n_samples
 
     def reset(self):
-        """Reset simulation to empty lattice."""
+        """Reset simulation to empty lattice and reseed the RNG."""
         self.lane1[:] = 0
         self.lane2[:] = 0
+        self._rng = np.random.default_rng(self.seed)
         self.total_time = 0.0
         self.current1 = 0
         self.current2 = 0
-        self.n_attempts = 0
         self._density_samples1 = []
         self._density_samples2 = []
         self._time_samples = []

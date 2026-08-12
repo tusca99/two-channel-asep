@@ -15,8 +15,8 @@ Two parallel 1D lattices (channels), each of length `L`, with particles:
 
 ### Narrow entrance coupling
 
-- Particle enters channel 1 at site 0 **only if** site `L-1` of channel 2 is empty.
-- Particle enters channel 2 at site `L-1` **only if** site 0 of channel 1 is empty.
+- Particle enters channel 1 at site 0 **only if** site 0 of channel 2 (its exit) is empty.
+- Particle enters channel 2 at site `L-1` **only if** site `L-1` of channel 1 (its exit) is empty.
 - Exit rate `β` is independent of the other channel.
 
 ### Parameters

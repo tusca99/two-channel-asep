@@ -17,5 +17,5 @@ workflow:
 
 coding:
   python: "3.10+ with type hints where helpful"
-  style: "minimal docstrings, clean functions"
+  style: "minimal docstrings, clean functions, follow YAGNI principle, and one-liner solutions"
   testing: "pytest-compatible, run with .venv/bin/python"

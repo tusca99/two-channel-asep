@@ -6,7 +6,7 @@
 - [x] Phase scanner (classifies LD/MC/HD-LDD/LD-LDL) — WORKING
 - [x] Theory notes draft — MFT derivation, phase table
 - [x] OpenCode agent context (.opencode/, CLAUDE.md) — set up
-- [ ] Numba acceleration module — written, UNTESTED
+- [x] Numba acceleration module — written, tested (reproducibility bug fixed: kernel now consumes seeded numpy RNG stream)
 
 ## Next: Code Structure Design (Tomorrow)
 After reading the paper, decide on:
