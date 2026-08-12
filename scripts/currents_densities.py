@@ -100,6 +100,24 @@ def plot_densities(ax, alpha, betas, r1, r2):
     ax.set_title(rf"Bulk densities, $\alpha={alpha}$")
 
 
+def plot_dJdbeta(ax, alpha, betas, J1, J2):
+    """
+    Derivative of the total current w.r.t. beta vs beta.
+
+    Reproduces the method of Pronina & Kolomeisky (2007, Sec 3, Fig 4): the
+    LD/MC boundary is located where dJ/dbeta reaches zero (or fluctuates
+    around zero), since in the MC phase the current is constant at its
+    maximum value.
+    """
+    Jtot = J1 + J2
+    dJ = np.gradient(Jtot, betas)
+    ax.plot(betas, dJ, "o-", ms=4, label=r"$dJ/d\beta$")
+    ax.axhline(0, color="k", lw=0.8, ls=":")
+    ax.set_xlabel(r"$\beta$")
+    ax.set_ylabel(r"$dJ/d\beta$")
+    ax.set_title(rf"Current derivative, $\alpha={alpha}$")
+
+
 def main():
     L = 200
     n_steps = 300_000
@@ -107,14 +125,20 @@ def main():
     sample_every = 200
     betas = np.linspace(0.05, 0.95, 19)
 
-    fig, axes = plt.subplots(1, 3, figsize=(15, 4.5))
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
 
-    for ax, alpha in zip(axes, [0.1, 0.8, 0.9]):
+    for ax, alpha in zip(axes[0], [0.1, 0.8]):
         J1, J2, r1, r2 = scan_beta(alpha, betas, L, n_steps, warmup, sample_every)
         if alpha < 0.5:
             plot_currents(ax, alpha, betas, J1, J2)
         else:
             plot_densities(ax, alpha, betas, r1, r2)
+        ax.legend(fontsize=7)
+
+    # dJ/dbeta for alpha=0.8 (crosses into MC) and alpha=0.9
+    for ax, alpha in zip(axes[1], [0.8, 0.9]):
+        J1, J2, _, _ = scan_beta(alpha, betas, L, n_steps, warmup, sample_every)
+        plot_dJdbeta(ax, alpha, betas, J1, J2)
         ax.legend(fontsize=7)
 
     fig.tight_layout()
