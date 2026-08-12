@@ -19,7 +19,7 @@ After reading the paper, decide on:
 
 ## Long Term (Post Paper Read)
 ### Phase 2: Reproduce Key Results
-- [ ] Reproduce Figure 2: Phase diagram
+- [x] Reproduce Figure 2: Phase diagram (MFT lines + MC points, scripts/phase_diagram.py)
 - [ ] Reproduce Figure 6: Currents & densities
 - [ ] Finite-size scaling of LD/LD phase
 - [ ] Density distribution P(ρ₁,ρ₂) for SSB detection
