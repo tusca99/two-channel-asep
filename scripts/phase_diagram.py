@@ -86,12 +86,12 @@ def plot_mc_grid(ax, alphas, betas, grid):
 
 def main():
     L = 200
-    n_steps = 200_000
-    warmup = 20_000
+    n_steps = 300_000
+    warmup = 30_000
     sample_every = 200
 
-    alphas = np.linspace(0.05, 0.95, 19)
-    betas = np.linspace(0.05, 0.95, 19)
+    alphas = np.linspace(0.05, 0.95, 31)
+    betas = np.linspace(0.05, 0.95, 31)
 
     grid = scan_phase_diagram(alphas, betas, L, n_steps, warmup, sample_every)
 

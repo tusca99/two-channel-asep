@@ -30,15 +30,17 @@ def bimodality(samples, bins=40):
     """
     Detect SSB from the joint density distribution.
 
-    Returns (is_ssb, asymmetry) where asymmetry is the mean |rho1 - rho2|.
-    In an SSB phase the distribution is bimodal and |rho1 - rho2| is large;
-    in a symmetric phase it is unimodal and |rho1 - rho2| ~ 0.
+    Returns (is_ssb, order) where order is the mean |rho1 - rho2|. In an SSB
+    phase the two channels sit at different densities, so |rho1 - rho2| is
+    large (~0.5-0.8); in a symmetric phase it is near 0. This is the standard
+    SSB order parameter. Caveat: at very large L the system can flip between
+    the two broken states, which washes out the time average; the paper's
+    Fig 5 uses the density-distribution method to handle this.
     """
     r1, r2 = samples[:, 0], samples[:, 1]
-    asymmetry = np.mean(np.abs(r1 - r2))
-    # SSB: the two channels spend time at different densities
-    is_ssb = asymmetry > 0.1
-    return is_ssb, asymmetry
+    order = np.mean(np.abs(r1 - r2))
+    is_ssb = order > 0.1
+    return is_ssb, order
 
 
 def plot_joint_distribution(samples, alpha, beta, L, ax=None):
@@ -53,7 +55,6 @@ def plot_joint_distribution(samples, alpha, beta, L, ax=None):
     ax.set_title(rf"P($\rho_1,\rho_2$), $\alpha={alpha}$, $\beta={beta}$, L={L}")
     ax.legend(fontsize=7)
     return h
-
 
 def main():
     L = 200
@@ -71,9 +72,9 @@ def main():
     fig, axes = plt.subplots(2, 2, figsize=(10, 9))
     for ax, (a, b, label) in zip(axes.ravel(), points):
         samples = collect_joint_samples(a, b, L, n_steps, warmup)
-        is_ssb, asym = bimodality(samples)
+        is_ssb, order = bimodality(samples)
         plot_joint_distribution(samples, a, b, L, ax)
-        ax.set_title(ax.get_title() + f"\n[{label}] SSB={is_ssb}, |drho|={asym:.2f}",
+        ax.set_title(ax.get_title() + f"\n[{label}] SSB={is_ssb}, |drho|={order:.2f}",
                      fontsize=9)
 
     fig.tight_layout()
