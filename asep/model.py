@@ -53,6 +53,9 @@ class TwoChannelASEP:
         self._site_density2 = np.zeros(L, dtype=np.float64)
         self._n_samples = 0
 
+        # Joint density samples (rho1, rho2) for SSB detection
+        self._joint_samples = []
+
     def run(self, n_steps: int, sample_every: int = 100, warmup: int = 0):
         """
         Run the simulation for `n_steps` Gillespie steps via the numba kernel.
@@ -85,6 +88,7 @@ class TwoChannelASEP:
                 self._site_density1 += self.lane1.astype(np.float64)
                 self._site_density2 += self.lane2.astype(np.float64)
                 self._n_samples += 1
+                self._joint_samples.append((np.mean(self.lane1), np.mean(self.lane2)))
 
     def get_bulk_densities(self):
         """
@@ -117,6 +121,15 @@ class TwoChannelASEP:
             return self.lane1.astype(float), self.lane2.astype(float)
         return self._site_density1 / self._n_samples, self._site_density2 / self._n_samples
 
+    def get_joint_density_samples(self):
+        """
+        Return the list of simultaneous (rho1, rho2) bulk-density samples.
+
+        Used to build the joint density distribution P(rho1, rho2) for
+        spontaneous-symmetry-breaking detection (bimodal in SSB phases).
+        """
+        return np.array(self._joint_samples)
+
     def reset(self):
         """Reset simulation to empty lattice and reseed the RNG."""
         self.lane1[:] = 0
@@ -131,3 +144,4 @@ class TwoChannelASEP:
         self._site_density1 = np.zeros(self.L, dtype=np.float64)
         self._site_density2 = np.zeros(self.L, dtype=np.float64)
         self._n_samples = 0
+        self._joint_samples = []

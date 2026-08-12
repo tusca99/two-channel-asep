@@ -21,8 +21,8 @@ After reading the paper, decide on:
 ### Phase 2: Reproduce Key Results
 - [x] Reproduce Figure 2: Phase diagram (MFT lines + MC points, scripts/phase_diagram.py)
 - [x] Reproduce Figure 6: Currents & densities (scripts/currents_densities.py)
-- [ ] Finite-size scaling of LD/LD phase
-- [ ] Density distribution P(ρ₁,ρ₂) for SSB detection
+- [x] Finite-size scaling of LD/LD phase (scripts/ssb_finite_size.py)
+- [x] Density distribution P(ρ₁,ρ₂) for SSB detection (scripts/ssb_analysis.py)
 
 ### Phase 3: Extension
 - [ ] Asymmetric rates? Wider entrances? 3-channel?
