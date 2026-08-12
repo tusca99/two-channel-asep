@@ -30,6 +30,11 @@ After reading the paper, decide on:
 - [ ] Parallelize phase-diagram scans (grid points are independent; currently single-core, not fully utilized)
 - [ ] GPU acceleration of the numba MC kernel (CUDA) for large-L / long runs
 
+### Phase 2.5: Improve currents/densities figure (error bars + L)
+- [ ] Error bars: add n_reps replicas per beta (done in code, needs rerun). Current errors are small (~0.009, < dot size); density errors are large (~0.18) in SSB phase because replicas land in different broken states (genuine bimodality, not noise)
+- [ ] Increase L to ~1000 (paper used 1000-12000) to close finite-size gap vs MFT. NOTE: larger L does NOT reduce statistical error bars (those come from steps+replicas); it only fixes finite-size bias. 100k is beyond paper range and overkill
+- [ ] Note in legend if error bars are smaller than the dots
+
 ### Phase 4: Presentation
 - [ ] Beamer slides
 - [ ] Live demo notebook
