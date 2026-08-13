@@ -24,16 +24,26 @@ After reading the paper, decide on:
 - [x] Finite-size scaling of LD/LD phase (scripts/ssb_finite_size.py)
 - [x] Density distribution P(ρ₁,ρ₂) for SSB detection (scripts/ssb_analysis.py)
 
+### Phase 2.5: Improve currents/densities figure (error bars + L)
+- [ ] Error bars: add n_reps replicas per beta (done in code, needs rerun). Current errors are small (~0.009, < dot size); density errors are large (~0.18) in SSB phase because replicas land in different broken states (genuine bimodality, not noise)
+- [ ] Increase L to ~1000 (paper used 1000-12000) to close finite-size gap vs MFT. NOTE: larger L does NOT reduce statistical error bars (those come from steps+replicas); it only fixes finite-size bias. 100k is beyond paper range and overkill
+- [ ] Note in legend if error bars are smaller than the dots
+
+### Phase 2.6: KEY IDEA — MF transition positions are NOT exact (professor's focus)
+The paper's central point: unlike standard single-lane TASEP (where MFT gives exact phase boundaries), here the MFT transition positions deviate from MC. Investigate in detail:
+- [x] Add embarrassingly-parallel MC scans (asep/parallel.py, ~7-10x speedup on 12 cores) — no more waiting on serial beta scans
+- [x] Measure the LD/MC boundary shift vs MFT (scripts/mf_mc_boundary.py): MC boundary sits at HIGHER beta than MFT; deviation grows with alpha (+0.01 at a=0.8 -> +0.075 at a=1.0)
+- [ ] For each boundary, measure the MC transition position vs the MFT prediction (e.g. α=2β/(4β−1) for LD/MC) and plot the deviation vs β
+- [ ] Check whether the deviation shrinks with L (finite-size) or persists in the thermodynamic limit (genuine MF failure) — NEED LONGER RUNS at L=800 (equilibration-limited, not parallelization-limited)
+- [ ] Compare with standard TASEP: confirm MFT is exact there (α=β=1/2 lines) vs. not exact here — this contrast is the paper's message
+- [ ] Explain WHY: MFT neglects correlations; the narrow-entrance coupling creates boundary correlations that MFT misses (effective impurity at the boundary)
+- [ ] Add a slide/figure in the presentation dedicated to this MF-vs-MC discrepancy
+
 ### Phase 3: Extension
 - [ ] Asymmetric rates? Wider entrances? 3-channel?
 - [ ] GPU port
 - [ ] Parallelize phase-diagram scans (grid points are independent; currently single-core, not fully utilized)
 - [ ] GPU acceleration of the numba MC kernel (CUDA) for large-L / long runs
-
-### Phase 2.5: Improve currents/densities figure (error bars + L)
-- [ ] Error bars: add n_reps replicas per beta (done in code, needs rerun). Current errors are small (~0.009, < dot size); density errors are large (~0.18) in SSB phase because replicas land in different broken states (genuine bimodality, not noise)
-- [ ] Increase L to ~1000 (paper used 1000-12000) to close finite-size gap vs MFT. NOTE: larger L does NOT reduce statistical error bars (those come from steps+replicas); it only fixes finite-size bias. 100k is beyond paper range and overkill
-- [ ] Note in legend if error bars are smaller than the dots
 
 ### Phase 4: Presentation
 - [ ] Beamer slides
