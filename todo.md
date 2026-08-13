@@ -41,9 +41,17 @@ The paper's central point: unlike standard single-lane TASEP (where MFT gives ex
 
 ### Phase 3: Extension
 - [ ] Asymmetric rates? Wider entrances? 3-channel?
-- [ ] GPU port
-- [ ] Parallelize phase-diagram scans (grid points are independent; currently single-core, not fully utilized)
-- [ ] GPU acceleration of the numba MC kernel (CUDA) for large-L / long runs
+
+### Phase 3.5: GPU port (numba CUDA) — IN PROGRESS
+Hardware: RTX 2060 (8GB), nvcc 12.9, numba CUDA works. Chose numba CUDA over torch (torch is bad fit for scalar per-system kernel; numba CUDA already installed, zero new deps). If numba CUDA hits a wall, fall back to raw CUDA in C (nvcc).
+- [x] asep/cuda.py: kernel `mc_scan_kernel_fixed` — one thread per (alpha,beta) grid point, each runs full sequential Gillespie loop. Compile-time MAX_L=4096 scratch (cuda.local.array needs const size)
+- [x] Per-thread xoroshiro128p RNG (numba curand), seeded from caller seed + thread index → reproducible (verified same seed = same result)
+- [x] Correctness verified vs physics: LD (J~0.14,rho~0.17), MC (J~0.24,rho~0.47), HD/LD asymmetric (rho~0.80/0.08), LD/LD asymmetric
+- [ ] BENCHMARK: CPU(12-core ProcessPool) vs GPU(RTX2060) speedup — NOT DONE, benchmark timed out. nvtop showed 33% efficiency / 100% usage during runs
+- [ ] OPTIMIZE: 33% efficiency suggests occupancy/divergence issues. Ideas: (a) reduce local-array scratch (8194 floats/thread is huge → low occupancy), (b) use shared memory for lattice, (c) try raw CUDA in C via nvcc for max control, (d) check block size / grid config
+- [ ] Add tests for CUDA correctness vs pure-Python reference (tests/test_cuda.py)
+- [ ] Wire CUDA backend into phase-diagram / boundary scan scripts (swap scan_points → run_scan)
+- [ ] Consider: one block per grid point (threads=sites) instead of one thread per point, for large-L single runs
 
 ### Phase 4: Presentation
 - [ ] Beamer slides
