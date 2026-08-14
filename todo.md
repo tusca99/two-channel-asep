@@ -42,16 +42,21 @@ The paper's central point: unlike standard single-lane TASEP (where MFT gives ex
 ### Phase 3: Extension
 - [ ] Asymmetric rates? Wider entrances? 3-channel?
 
-### Phase 3.5: GPU port (numba CUDA) — IN PROGRESS
-Hardware: RTX 2060 (8GB), nvcc 12.9, numba CUDA works. Chose numba CUDA over torch (torch is bad fit for scalar per-system kernel; numba CUDA already installed, zero new deps). If numba CUDA hits a wall, fall back to raw CUDA in C (nvcc).
-- [x] asep/cuda.py: kernel `mc_scan_kernel_fixed` — one thread per (alpha,beta) grid point, each runs full sequential Gillespie loop. Compile-time MAX_L=4096 scratch (cuda.local.array needs const size)
-- [x] Per-thread xoroshiro128p RNG (numba curand), seeded from caller seed + thread index → reproducible (verified same seed = same result)
-- [x] Correctness verified vs physics: LD (J~0.14,rho~0.17), MC (J~0.24,rho~0.47), HD/LD asymmetric (rho~0.80/0.08), LD/LD asymmetric
-- [ ] BENCHMARK: CPU(12-core ProcessPool) vs GPU(RTX2060) speedup — NOT DONE, benchmark timed out. nvtop showed 33% efficiency / 100% usage during runs
-- [ ] OPTIMIZE: 33% efficiency suggests occupancy/divergence issues. Ideas: (a) reduce local-array scratch (8194 floats/thread is huge → low occupancy), (b) use shared memory for lattice, (c) try raw CUDA in C via nvcc for max control, (d) check block size / grid config
-- [ ] Add tests for CUDA correctness vs pure-Python reference (tests/test_cuda.py)
-- [ ] Wire CUDA backend into phase-diagram / boundary scan scripts (swap scan_points → run_scan)
-- [ ] Consider: one block per grid point (threads=sites) instead of one thread per point, for large-L single runs
+### Phase 3.5: GPU port (numba CUDA) — CONCLUSION: NOT WORTH IT FOR PRODUCTION
+Hardware: RTX 2060 (8GB), nvcc 12.9, numba CUDA works. Chose numba CUDA over torch (torch is bad fit for scalar per-system kernel; numba CUDA already installed, zero new deps).
+- [x] asep/cuda.py: thread kernel (one thread per grid point) + block kernel (one block per point, lattice in shared memory, parallel rate reduction)
+- [x] Per-thread/block xoroshiro128p RNG (numba curand), reproducible (verified same seed = same result)
+- [x] Correctness verified vs physics: LD/MC/HD-LD/LD-LD all match
+- [x] BENCHMARK (2000 pts, L=200, 200k steps): GPU block kernel = 29 pts/s, CPU 12-core = 24 pts/s → GPU only ~1.2x faster. NOT worth the complexity.
+- [x] Shared-mem block kernel is 4x faster than thread kernel (52s->13s for 100 pts), but still ~= CPU parallel
+- [x] ROOT CAUSE (structural, NOT numba): MC is a serial chain — each move depends on the previous. GPU can't parallelize within a trajectory; only runs many systems concurrently. Occupancy capped at 4 blocks/SM (shared mem), per-step syncthreads barrier serializes. 34-43% efficiency is inherent.
+- [x] L2 cache / more concurrency won't fix it: already at occupancy ceiling.
+- [ ] DECISION: use CPU parallel (ProcessPool) + BKL for production scans. GPU port kept as a learning exercise / optional backend, not default.
+- [ ] (optional) BKL CUDA kernel: BKL removes the per-step reduction, so thread 0 could run the active list against shared mem without the syncthreads barrier — the one design that might beat CPU. Low priority.
+
+### Phase 3.6: BKL (active-site list) — DONE, 2.2x speedup
+- [x] asep/bkl.py: Bortz-Kalos-Lebowitz, incremental O(1) active-list update in 3-site window. Cuts per-step cost from O(L) to O(active). Verified correct vs Gillespie; ~2.2x speedup across densities.
+- [ ] Wire BKL into TwoChannelASEP.run() as an option (use_bkl=True) so scans use it by default
 
 ### Phase 4: Presentation
 - [ ] Beamer slides

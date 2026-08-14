@@ -1,5 +1,6 @@
 import numpy as np
 from .mc import run_mc_batched, make_uniforms
+from .bkl import run_bkl
 
 
 class TwoChannelASEP:
@@ -56,9 +57,10 @@ class TwoChannelASEP:
         # Joint density samples (rho1, rho2) for SSB detection
         self._joint_samples = []
 
-    def run(self, n_steps: int, sample_every: int = 100, warmup: int = 0):
+    def run(self, n_steps: int, sample_every: int = 100, warmup: int = 0,
+            use_bkl: bool = True):
         """
-        Run the simulation for `n_steps` Gillespie steps via the numba kernel.
+        Run the simulation for `n_steps` Monte Carlo steps.
 
         Parameters
         ----------
@@ -68,15 +70,25 @@ class TwoChannelASEP:
             Sample density profiles every N steps
         warmup : int
             Number of initial steps to discard before sampling
+        use_bkl : bool
+            Use the BKL (active-site list) kernel (~2.2x faster) instead of
+            the full-scan Gillespie kernel.
         """
         block = 1000
         done = 0
         while done < n_steps:
             step = min(block, n_steps - done)
-            uniforms = make_uniforms(step, self._rng)
-            dt, e1, e2 = run_mc_batched(
-                self.lane1, self.lane2, self.alpha, self.beta, step, uniforms
-            )
+            uniforms = make_uniforms(step * 3, self._rng)
+            if use_bkl:
+                dt, e1, e2, _ = run_bkl(
+                    self.lane1, self.lane2, self.alpha, self.beta, step,
+                    uniforms, 0
+                )
+            else:
+                dt, e1, e2 = run_mc_batched(
+                    self.lane1, self.lane2, self.alpha, self.beta, step,
+                    uniforms
+                )
             self.total_time += dt
             self.current1 += e1
             self.current2 += e2
