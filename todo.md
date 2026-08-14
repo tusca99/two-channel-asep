@@ -24,6 +24,13 @@ After reading the paper, decide on:
 - [x] Finite-size scaling of LD/LD phase (scripts/ssb_finite_size.py)
 - [x] Density distribution P(ρ₁,ρ₂) for SSB detection (scripts/ssb_analysis.py)
 
+### Phase 2.7: FIGURE 3 — MUST REVISE (current version is poor vs paper)
+Paper's Fig 3: 3D plots of P(ρ₁,ρ₂) with CLEAR bimodal peaks (SSB), the highest region projected on the bottom plane (B&W in paper, we can do color). Our current 3D surfaces are "garbage" — peaks not distinguishable.
+- [ ] Diagnose WHY our P(ρ₁,ρ₂) lacks clear peaks: system flips between broken states at L=1000, washing out the time-averaged distribution. Need to verify with vision model / longer runs / different beta range.
+- [ ] Consider: sample the joint density over SHORT time windows (to catch the broken state before it flips) instead of the full run, OR increase L / steps as the paper (2e7-5e8 steps).
+- [ ] Match paper's beta range (0.23-0.28) if possible, or justify our range.
+- [ ] Add colored contour projection on the bottom plane so peak positions are clearly visible (paper is B&W, we can do better).
+
 ### Phase 2.5: Improve currents/densities figure (error bars + L)
 - [ ] Error bars: add n_reps replicas per beta (done in code, needs rerun). Current errors are small (~0.009, < dot size); density errors are large (~0.18) in SSB phase because replicas land in different broken states (genuine bimodality, not noise)
 - [ ] Increase L to ~1000 (paper used 1000-12000) to close finite-size gap vs MFT. NOTE: larger L does NOT reduce statistical error bars (those come from steps+replicas); it only fixes finite-size bias. 100k is beyond paper range and overkill
