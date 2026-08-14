@@ -24,12 +24,14 @@ After reading the paper, decide on:
 - [x] Finite-size scaling of LD/LD phase (scripts/ssb_finite_size.py)
 - [x] Density distribution P(ρ₁,ρ₂) for SSB detection (scripts/ssb_analysis.py)
 
-### Phase 2.7: FIGURE 3 — MUST REVISE (current version is poor vs paper)
-Paper's Fig 3: 3D plots of P(ρ₁,ρ₂) with CLEAR bimodal peaks (SSB), the highest region projected on the bottom plane (B&W in paper, we can do color). Our current 3D surfaces are "garbage" — peaks not distinguishable.
-- [ ] Diagnose WHY our P(ρ₁,ρ₂) lacks clear peaks: system flips between broken states at L=1000, washing out the time-averaged distribution. Need to verify with vision model / longer runs / different beta range.
-- [ ] Consider: sample the joint density over SHORT time windows (to catch the broken state before it flips) instead of the full run, OR increase L / steps as the paper (2e7-5e8 steps).
-- [ ] Match paper's beta range (0.23-0.28) if possible, or justify our range.
-- [ ] Add colored contour projection on the bottom plane so peak positions are clearly visible (paper is B&W, we can do better).
+### Phase 2.7: FIGURE 3 — REVISED (ensemble reconstruction + animation)
+Paper's Fig 3: 3D plots of P(ρ₁,ρ₂) with CLEAR bimodal peaks (SSB). Root cause of our poor version: at L=1000 a single MC run gets STUCK in one broken state (one peak); the paper's P shows two peaks because their sampling visits both broken states.
+- [x] Fix: average P(ρ₁,ρ₂) over an ENSEMBLE of seeds (each lands in a random broken state) → reconstructs the two-peak structure
+- [x] Colored contour projected on bottom plane (paper is B&W; we use turbo colormap) so peak locations are clear
+- [x] Snapshots at the paper's exact β values (0.23-0.95)
+- [x] 3D animation sweeping β (0.04-0.35, parallelized precompute) showing peaks emerge/merge
+- [ ] NOTE: our SSB lives at lower β than the paper (0.06-0.12 vs paper's 0.23) — the MFT-vs-MC discrepancy. Snapshots at paper's β show diagonal peaks (symmetric); the off-diagonal peaks appear in our β range.
+- [ ] Run full 80-frame animation with fine β steps (0.0001) for the slow, sensitive region
 
 ### Phase 2.5: Improve currents/densities figure (error bars + L)
 - [ ] Error bars: add n_reps replicas per beta (done in code, needs rerun). Current errors are small (~0.009, < dot size); density errors are large (~0.18) in SSB phase because replicas land in different broken states (genuine bimodality, not noise)
