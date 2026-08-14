@@ -89,26 +89,39 @@ def snapshots(alpha, L, n_steps, warmup, n_seeds):
     plt.show()
 
 
-def _run_frame(args):
-    """Run one beta frame: ensemble over seeds, return concatenated samples."""
-    alpha, L, n_steps, warmup, n_seeds, b = args
-    all_s = []
-    for k in range(n_seeds):
-        sim = TwoChannelASEP(L=L, alpha=alpha, beta=float(b), seed=k)
-        sim.run(n_steps=n_steps, sample_every=max(1, L // 10), warmup=warmup)
-        all_s.append(sim.get_joint_density_samples())
-    return np.concatenate(all_s)
+def _run_single(args):
+    """Run one (beta, seed) MC run; return that seed's joint samples."""
+    alpha, L, n_steps, warmup, b, seed = args
+    sim = TwoChannelASEP(L=L, alpha=alpha, beta=float(b), seed=seed)
+    sim.run(n_steps=n_steps, sample_every=max(1, L // 10), warmup=warmup)
+    return sim.get_joint_density_samples()
 
 
 def precompute_frames(alpha, L, n_steps, warmup, n_seeds, betas):
-    """Precompute joint histograms for each beta (parallelized)."""
+    """Precompute joint histograms for each beta (parallelized).
+
+    Parallelizes at the individual (beta, seed) run level for fine-grained
+    load balancing: n_frames * n_seeds independent MC runs are distributed
+    across the pool, then grouped back per beta.
+    """
     from concurrent.futures import ProcessPoolExecutor
-    tasks = [(alpha, L, n_steps, warmup, n_seeds, float(b)) for b in betas]
-    frames = []
+    n_frames = len(betas)
+    # Flatten to individual runs: (beta, seed) pairs
+    tasks = [(alpha, L, n_steps, warmup, betas[fi], seed)
+             for fi in range(n_frames) for seed in range(n_seeds)]
+
+    results = []
     with ProcessPoolExecutor() as ex:
-        for samples in tqdm(ex.map(_run_frame, tasks), total=len(tasks),
-                            desc="precompute beta sweep"):
-            frames.append(joint_histogram(samples))
+        for samples in tqdm(ex.map(_run_single, tasks), total=len(tasks),
+                            desc="precompute MC runs"):
+            results.append(samples)
+
+    # Group by beta index
+    frames = []
+    for fi in range(n_frames):
+        group = np.concatenate([results[fi * n_seeds + seed]
+                                for seed in range(n_seeds)])
+        frames.append(joint_histogram(group))
     return frames
 
 
