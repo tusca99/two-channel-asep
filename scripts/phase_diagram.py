@@ -69,14 +69,24 @@ def scan_phase_diagram(alphas, betas, L, n_steps, warmup, sample_every, seed=0):
     """
     Classify the phase at each (alpha, beta) grid point via MC (parallel).
 
+    Uses the density-distribution method: collects joint (rho1, rho2) samples
+    and detects symmetry breaking via std(rho1-rho2), which is robust to the
+    state-flipping that washes out the time-averaged |rho1-rho2| at large L.
+
     Returns a 2D array of phase labels (strings).
     """
-    from asep.parallel import make_tasks, scan_points, grid_to_labels
+    from asep.parallel import make_tasks, scan_points_samples
     tasks = make_tasks(alphas, betas, L, n_steps, warmup, sample_every, seed)
-    res = scan_points(tasks, desc="phase grid")
-    grid = grid_to_labels(res, alphas, betas,
-                          lambda J1, J2, r1, r2, a, b: classify_phase(
-                              J1, J2, r1, r2, a, b, L)[0])
+    res = scan_points_samples(tasks, desc="phase grid")
+    na, nb = len(alphas), len(betas)
+    grid = np.empty((na, nb), dtype=object)
+    k = 0
+    for i, a in enumerate(alphas):
+        for j, b in enumerate(betas):
+            J1, J2, r1, r2, samples = res[k]
+            grid[i, j] = classify_phase(J1, J2, r1, r2, a, b, L,
+                                        samples=samples)[0]
+            k += 1
     return grid
 
 

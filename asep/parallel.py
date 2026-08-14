@@ -21,6 +21,16 @@ def _run_point(task):
     return J1, J2, r1, r2
 
 
+def _run_point_samples(task):
+    """Run one point; return (J1, J2, rho1, rho2, joint_samples)."""
+    alpha, beta, L, n_steps, warmup, sample_every, seed = task
+    sim = TwoChannelASEP(L=L, alpha=alpha, beta=beta, seed=seed)
+    sim.run(n_steps=n_steps, sample_every=sample_every, warmup=warmup)
+    J1, J2 = sim.get_currents()
+    r1, r2 = sim.get_bulk_densities()
+    return J1, J2, r1, r2, sim.get_joint_density_samples()
+
+
 def scan_points(tasks, n_workers=None, desc="scan"):
     """
     Run a list of independent (alpha, beta, L, n_steps, warmup, sample_every, seed)
@@ -30,6 +40,19 @@ def scan_points(tasks, n_workers=None, desc="scan"):
     results = [None] * len(tasks)
     with ProcessPoolExecutor(max_workers=n_workers) as ex:
         futures = {ex.submit(_run_point, t): j for j, t in enumerate(tasks)}
+        for fut in tqdm(as_completed(futures), total=len(tasks), desc=desc):
+            results[futures[fut]] = fut.result()
+    return results
+
+
+def scan_points_samples(tasks, n_workers=None, desc="scan"):
+    """
+    Like scan_points but also returns the joint density samples per point,
+    for the density-distribution phase classification.
+    """
+    results = [None] * len(tasks)
+    with ProcessPoolExecutor(max_workers=n_workers) as ex:
+        futures = {ex.submit(_run_point_samples, t): j for j, t in enumerate(tasks)}
         for fut in tqdm(as_completed(futures), total=len(tasks), desc=desc):
             results[futures[fut]] = fut.result()
     return results
