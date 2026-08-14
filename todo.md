@@ -42,25 +42,11 @@ The paper's central point: unlike standard single-lane TASEP (where MFT gives ex
 ### Phase 3: Extension
 - [ ] Asymmetric rates? Wider entrances? 3-channel?
 
-### Phase 3.5: GPU port (numba CUDA) — CONCLUSION: NOT WORTH IT FOR PRODUCTION
-Hardware: RTX 2060 (8GB), nvcc 12.9, numba CUDA works. Chose numba CUDA over torch (torch is bad fit for scalar per-system kernel; numba CUDA already installed, zero new deps).
-- [x] asep/cuda.py: thread kernel (one thread per grid point) + block kernel (one block per point, lattice in shared memory, parallel rate reduction)
-- [x] Per-thread/block xoroshiro128p RNG (numba curand), reproducible (verified same seed = same result)
-- [x] Correctness verified vs physics: LD/MC/HD-LD/LD-LD all match
-- [x] BENCHMARK (2000 pts, L=200, 200k steps): GPU block kernel = 29 pts/s, CPU 12-core = 24 pts/s → GPU only ~1.2x faster. NOT worth the complexity.
-- [x] Shared-mem block kernel is 4x faster than thread kernel (52s->13s for 100 pts), but still ~= CPU parallel
-- [x] ROOT CAUSE (structural, NOT numba): MC is a serial chain — each move depends on the previous. GPU can't parallelize within a trajectory; only runs many systems concurrently. Occupancy capped at 4 blocks/SM (shared mem), per-step syncthreads barrier serializes. 34-43% efficiency is inherent.
-- [x] L2 cache / more concurrency won't fix it: already at occupancy ceiling.
-- [ ] DECISION: use CPU parallel (ProcessPool) + BKL for production scans. GPU port kept as a learning exercise / optional backend, not default.
-- [ ] (optional) BKL CUDA kernel: BKL removes the per-step reduction, so thread 0 could run the active list against shared mem without the syncthreads barrier — the one design that might beat CPU. Low priority.
-
-### Phase 3.6: BKL (active-site list) — DONE, 2.2x speedup
-- [x] asep/bkl.py: Bortz-Kalos-Lebowitz, incremental O(1) active-list update in 3-site window. Cuts per-step cost from O(L) to O(active). Verified correct vs Gillespie; ~2.2x speedup across densities.
-- [x] Wire BKL into TwoChannelASEP.run() as an option (use_bkl=True) so scans use it by default
-- [x] Add xorshift64* inline RNG (run_bkl_xor) as a numpy-free path. Result: only 1.07x faster. Corrected measurement: RNG gen is ~3.9% of the full run (35ms of 914ms), not 30% — an earlier mislabel from comparing against the raw kernel only. RNG was never the bottleneck; xorshift kept as optional backend, not default.
-- [x] Parallelization strategy CONFIRMED: one thread per run (independent realizations in parallel via ProcessPool). MC is serial within a trajectory, so parallelizing steps is not possible; the only parallelism is across realizations.
-- [x] C vs numba: wrote a clean C BKL (gcc -O2). numba BKL (326 ns/step) BEATS the C version (559 ns/step). LLVM backend > hand-written C here. C would NOT drastically help.
-- [ ] OPTIONAL: xorshift in model.run() as default if we want to drop the numpy uniform stream (minor gain)
+### Phase 3.5: Optimization exploration — SUMMARY (concluded, keep code lean)
+Explored and measured, then removed unused code (cuda.py, xorshift) to keep repo clean. Final production path:
+- [x] **BKL active-site list** (asep/bkl.py, wired into TwoChannelASEP.run default): ~2.2x over Gillespie
+- [x] **ProcessPool parallel scans** (asep/parallel.py): ~4x (12 cores); one thread per run — MC is serial within a trajectory, so parallelism is only across realizations
+- [x] **Numba > hand-written C**: clean C BKL (gcc -O2) = 559 ns/step vs numba 326 ns/step. C would NOT drastically help. GPU not worth it either (~1.2x vs CPU parallel, serial-chain structural limit). RNG was never a bottleneck (~4% of runtime).
 
 ### Phase 4: Presentation
 - [ ] Beamer slides

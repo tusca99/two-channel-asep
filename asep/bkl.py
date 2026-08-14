@@ -25,23 +25,6 @@ window and update the active-site list.
 import numpy as np
 from numba import njit
 
-# xorshift64* multiplier
-_XOR_MULT = np.uint64(2685821657736338717)
-
-
-@njit(cache=True)
-def _xor_uniform(state):
-    """
-    One xorshift64* step. state is a uint64 (passed by value; returned updated).
-    Returns (uniform01, new_state).
-    """
-    x = state
-    x ^= x >> np.uint64(12)
-    x ^= x << np.uint64(25)
-    x ^= x >> np.uint64(27)
-    u = (x * _XOR_MULT) >> np.uint64(11)
-    return np.float64(u) / 9007199254740992.0, x
-
 
 @njit(cache=True, fastmath=True)
 def _site_rate(lane1, lane2, alpha, beta, L, i):
@@ -220,65 +203,3 @@ def run_bkl(lane1, lane2, alpha, beta, n_steps, uniforms, u_idx):
                                    n_active, chosen)
 
     return total_time, n_exit1, n_exit2, u_idx
-
-
-@njit(cache=True, fastmath=True)
-def run_bkl_xor(lane1, lane2, alpha, beta, n_steps, seed):
-    """
-    BKL MC with an inline xorshift64* RNG (no numpy uniform stream).
-
-    Avoids the overhead of generating and reading a numpy RNG array. Results
-    are reproducible for a given `seed`. Uses 3 xorshift draws per step
-    (time, site selection, move selection).
-
-    Returns (total_time, n_exit1, n_exit2).
-    """
-    L = lane1.shape[0]
-    rates = np.zeros(L, dtype=np.float64)
-    active = np.empty(L, dtype=np.int64)
-    n_active = _rebuild_active(lane1, lane2, alpha, beta, L, rates, active, 0)
-
-    state = np.uint64(seed) & np.uint64(0xFFFFFFFFFFFFFFFF)
-    if state == np.uint64(0):
-        state = np.uint64(88172645463325252)
-
-    total_time = 0.0
-    n_exit1 = 0
-    n_exit2 = 0
-
-    for _ in range(n_steps):
-        if n_active == 0:
-            total_time += 0.001
-            continue
-
-        # Total rate = sum over active sites
-        total_rate = 0.0
-        for k in range(n_active):
-            total_rate += rates[active[k]]
-
-        # Time advance
-        u1, state = _xor_uniform(state)
-        total_time += -np.log(u1) / total_rate
-
-        # Select an active site proportional to its rate
-        u2, state = _xor_uniform(state)
-        r = u2 * total_rate
-        cum = 0.0
-        chosen = active[n_active - 1]
-        for k in range(n_active):
-            cum += rates[active[k]]
-            if r <= cum:
-                chosen = active[k]
-                break
-
-        # Pick and execute a move at the chosen site
-        u3, state = _xor_uniform(state)
-        e1, e2 = _pick_move(lane1, lane2, alpha, beta, L, chosen, u3 * rates[chosen])
-        n_exit1 += e1
-        n_exit2 += e2
-
-        # Refresh activity around the moved site
-        n_active = _refresh_window(lane1, lane2, alpha, beta, L, rates, active,
-                                   n_active, chosen)
-
-    return total_time, n_exit1, n_exit2
