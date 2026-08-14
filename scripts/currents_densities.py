@@ -1,17 +1,23 @@
 """
-Figure 6: stationary-state properties vs beta, with statistics, at L=1000.
+Figure 6: stationary-state properties vs beta with statistics and MFT lines.
 
-Layout (one row per alpha, as the paper's Fig 6):
-  alpha = 0.1 : currents J1, J2 vs beta  (+ dJ/dbeta panel)
-  alpha = 0.8 : currents J1, J2 vs beta
-  alpha = 0.9 : bulk densities rho1, rho2 vs beta
-Each point is the mean +/- standard error over n_reps independent seeds.
+Produces separate square plots (saved as PNG + data as .npy in results/fig6/):
+  J1, J2 vs beta  (with MFT lines)   - currents, one row per alpha
+  rho1, rho2 vs beta (with MFT lines) - bulk densities
+  dJ/dbeta vs beta                    - current derivative
+
+Data is cached in .npy so re-plotting does not re-run the MC.
 """
+import os
 import numpy as np
 import matplotlib.pyplot as plt
-from tqdm import tqdm
 
+from asep.theory import mft_currents, mft_densities
 from asep.parallel import make_tasks, scan_points
+
+
+OUT = "results/fig6"
+os.makedirs(OUT, exist_ok=True)
 
 
 def scan_beta_stats(alpha, betas, L, n_steps, warmup, sample_every, n_reps,
@@ -36,13 +42,52 @@ def scan_beta_stats(alpha, betas, L, n_steps, warmup, sample_every, n_reps,
     return J1, J2, r1, r2, eJ1, eJ2, er1, er2
 
 
-def mft_currents(alpha, beta):
-    """MFT single-lane LD current a1(1-a1)."""
-    disc = (alpha + beta) ** 2 - 4 * alpha**2 * beta
-    if disc < 0:
-        return np.nan
-    a1 = (alpha + beta - np.sqrt(disc)) / (2 * alpha)
-    return a1 * (1 - a1)
+def load_or_scan(alpha, betas, L, n_steps, warmup, sample_every, n_reps):
+    """Load cached .npy or scan; save result."""
+    fname = f"{OUT}/alpha{alpha}.npz"
+    if os.path.exists(fname):
+        d = np.load(fname)
+        return (d["J1"], d["J2"], d["rho1"], d["rho2"],
+                d["eJ1"], d["eJ2"], d["erho1"], d["erho2"])
+    res = scan_beta_stats(alpha, betas, L, n_steps, warmup, sample_every,
+                          n_reps)
+    np.savez(fname, J1=res[0], J2=res[1], rho1=res[2], rho2=res[3],
+             eJ1=res[4], eJ2=res[5], erho1=res[6], erho2=res[7],
+             betas=betas)
+    return res
+
+
+def plot_currents(alpha, betas, J1, J2, eJ1, eJ2, fname):
+    """J1, J2 vs beta with MFT lines, square."""
+    fig, ax = plt.subplots(figsize=(4.5, 4.5))
+    ax.errorbar(betas, J1, yerr=eJ1, fmt="o-", ms=4, capsize=2, label=r"$J_1$ (MC)")
+    ax.errorbar(betas, J2, yerr=eJ2, fmt="s-", ms=4, capsize=2, label=r"$J_2$ (MC)")
+    mft1 = [mft_currents(alpha, b)[0] for b in betas]
+    mft2 = [mft_currents(alpha, b)[1] for b in betas]
+    ax.plot(betas, mft1, "k--", lw=1.2, label=r"$J_1$ (MFT)")
+    ax.plot(betas, mft2, "k:", lw=1.2, label=r"$J_2$ (MFT)")
+    ax.set_xlabel(r"$\beta$"); ax.set_ylabel(r"$J$")
+    ax.set_title(rf"Currents, $\alpha={alpha}$")
+    ax.set_xlim(0, 1); ax.set_ylim(0, 0.3)
+    ax.legend(fontsize=7)
+    fig.tight_layout(); fig.savefig(fname, dpi=150); plt.close(fig)
+
+
+def plot_densities(alpha, betas, r1, r2, er1, er2, fname):
+    """rho1, rho2 vs beta with MFT lines (HD/LD, LD phases), square."""
+    fig, ax = plt.subplots(figsize=(4.5, 4.5))
+    ax.errorbar(betas, r1, yerr=er1, fmt="o-", ms=4, capsize=2, label=r"$\rho_1$ (MC)")
+    ax.errorbar(betas, r2, yerr=er2, fmt="s-", ms=4, capsize=2, label=r"$\rho_2$ (MC)")
+    mft1 = [mft_densities(alpha, b)[0] for b in betas]
+    mft2 = [mft_densities(alpha, b)[1] for b in betas]
+    ax.plot(betas, mft1, "k--", lw=1.2, label=r"$\rho_1$ (MFT)")
+    ax.plot(betas, mft2, "k:", lw=1.2, label=r"$\rho_2$ (MFT)")
+    ax.axhline(0.5, color="r", ls=":", lw=1, label="MC $\\rho=1/2$")
+    ax.set_xlabel(r"$\beta$"); ax.set_ylabel(r"$\rho$")
+    ax.set_title(rf"Bulk densities, $\alpha={alpha}$")
+    ax.set_xlim(0, 1); ax.set_ylim(0, 1)
+    ax.legend(fontsize=7)
+    fig.tight_layout(); fig.savefig(fname, dpi=150); plt.close(fig)
 
 
 def main():
@@ -53,62 +98,18 @@ def main():
     n_reps = 8
     betas = np.linspace(0.05, 0.95, 30)
 
-    fig = plt.figure(figsize=(13, 9))
-    gs = fig.add_gridspec(3, 2, width_ratios=[2.5, 1], hspace=0.4,
-                          wspace=0.3)
+    alphas = [0.1, 0.8, 0.9]
+    for alpha in alphas:
+        J1, J2, r1, r2, eJ1, eJ2, er1, er2 = load_or_scan(
+            alpha, betas, L, n_steps, warmup, sample_every, n_reps)
+        if alpha < 0.5:
+            plot_currents(alpha, betas, J1, J2, eJ1, eJ2,
+                          f"{OUT}/currents_alpha{alpha}.png")
+        else:
+            plot_densities(alpha, betas, r1, r2, er1, er2,
+                           f"{OUT}/densities_alpha{alpha}.png")
 
-    # alpha=0.1: currents (left) + dJ/dbeta (right)
-    axJ = fig.add_subplot(gs[0, 0])
-    axdJ = fig.add_subplot(gs[0, 1])
-    J1, J2, r1, r2, eJ1, eJ2, er1, er2 = scan_beta_stats(
-        0.1, betas, L, n_steps, warmup, sample_every, n_reps)
-    axJ.errorbar(betas, J1, yerr=eJ1, fmt="o-", ms=3, capsize=2, label="$J_1$")
-    axJ.errorbar(betas, J2, yerr=eJ2, fmt="s-", ms=3, capsize=2, label="$J_2$")
-    mft = [mft_currents(0.1, b) for b in betas]
-    axJ.plot(betas, mft, "k--", lw=1.2, label="MFT")
-    axJ.set_ylabel(r"$J$"); axJ.set_title(r"Currents, $\alpha=0.1$")
-    axJ.legend(fontsize=7)
-    Jtot = J1 + J2
-    axdJ.plot(betas, np.gradient(Jtot, betas), "o-", ms=3, color="C3")
-    axdJ.axhline(0, color="k", ls=":", lw=1)
-    axdJ.set_title(r"$dJ/d\beta$, $\alpha=0.1$")
-
-    # alpha=0.8: currents (left) + dJ/dbeta (right)
-    axJ = fig.add_subplot(gs[1, 0])
-    axdJ = fig.add_subplot(gs[1, 1])
-    J1, J2, r1, r2, eJ1, eJ2, er1, er2 = scan_beta_stats(
-        0.8, betas, L, n_steps, warmup, sample_every, n_reps)
-    axJ.errorbar(betas, J1, yerr=eJ1, fmt="o-", ms=3, capsize=2, label="$J_1$")
-    axJ.errorbar(betas, J2, yerr=eJ2, fmt="s-", ms=3, capsize=2, label="$J_2$")
-    mft = [mft_currents(0.8, b) for b in betas]
-    axJ.plot(betas, mft, "k--", lw=1.2, label="MFT")
-    axJ.set_ylabel(r"$J$"); axJ.set_title(r"Currents, $\alpha=0.8$")
-    axJ.legend(fontsize=7)
-    Jtot = J1 + J2
-    axdJ.plot(betas, np.gradient(Jtot, betas), "o-", ms=3, color="C3")
-    axdJ.axhline(0, color="k", ls=":", lw=1)
-    axdJ.set_title(r"$dJ/d\beta$, $\alpha=0.8$")
-
-    # alpha=0.9: bulk densities (span both columns)
-    axr = fig.add_subplot(gs[2, :])
-    J1, J2, r1, r2, eJ1, eJ2, er1, er2 = scan_beta_stats(
-        0.9, betas, L, n_steps, warmup, sample_every, n_reps)
-    axr.errorbar(betas, r1, yerr=er1, fmt="o-", ms=3, capsize=2,
-                 label=r"$\rho_1$")
-    axr.errorbar(betas, r2, yerr=er2, fmt="s-", ms=3, capsize=2,
-                 label=r"$\rho_2$")
-    axr.axhline(0.5, color="r", ls=":", lw=1, label="MC $\\rho=1/2$")
-    axr.set_xlabel(r"$\beta$"); axr.set_ylabel(r"$\rho$")
-    axr.set_title(r"Bulk densities, $\alpha=0.9$")
-    axr.legend(fontsize=7)
-
-    for ax in fig.axes:
-        ax.set_xlabel(r"$\beta$")
-        ax.set_xlim(0, 1)
-
-    fig.suptitle(f"Figure 6: stationary properties (L={L}, {n_reps} seeds)")
-    fig.savefig("results/currents_densities.png", dpi=150)
-    plt.show()
+    print(f"Figures and data saved in {OUT}/")
 
 
 if __name__ == "__main__":
