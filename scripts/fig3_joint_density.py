@@ -37,11 +37,19 @@ def joint_histogram(samples, bins=48):
 
 
 def plot_3d(ax, H, xedges, yedges, beta, label):
-    """3D surface with colored contour on the bottom plane; good contrast."""
+    """3D surface with colored contour on the bottom plane; good contrast.
+
+    rho1 axis is reversed so that, like the paper, both rho1 and rho2 start
+    at 0 at the nearest corner of the plot.
+    """
     xc = 0.5 * (xedges[:-1] + xedges[1:])
     yc = 0.5 * (yedges[:-1] + yedges[1:])
     X, Y = np.meshgrid(xc, yc)
     Z = H.T
+
+    # Reverse rho1 axis (the X/columns dimension) so rho1=0 is at the near corner
+    Z = Z[:, ::-1]
+    X = X[:, ::-1]
 
     # Normalize so the max peak is prominent (high contrast)
     Z = Z / Z.max()
