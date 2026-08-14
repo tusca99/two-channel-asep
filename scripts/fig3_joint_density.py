@@ -47,10 +47,6 @@ def plot_3d(ax, H, xedges, yedges, beta, label):
     X, Y = np.meshgrid(xc, yc)
     Z = H.T
 
-    # Reverse rho1 axis (the X/columns dimension) so rho1=0 is at the near corner
-    Z = Z[:, ::-1]
-    X = X[:, ::-1]
-
     # Normalize so the max peak is prominent (high contrast)
     Z = Z / Z.max()
 
@@ -65,7 +61,9 @@ def plot_3d(ax, H, xedges, yedges, beta, label):
     ax.set_xlabel(r"$\rho_1$", fontsize=8)
     ax.set_ylabel(r"$\rho_2$", fontsize=8)
     ax.set_zlabel(r"$P/P_{max}$", fontsize=8)
-    ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.set_zlim(0, 1.05)
+    # Invert x (rho1) so rho1=0 is at the near corner, matching the paper
+    # (both axes start at 0 nearest the viewer).
+    ax.set_xlim(1, 0); ax.set_ylim(0, 1); ax.set_zlim(0, 1.05)
     ax.set_title(rf"$\beta={beta}$ [{label}]", fontsize=9)
     ax.view_init(elev=25, azim=-55)
     ax.set_box_aspect((1, 1, 0.6))
@@ -102,6 +100,18 @@ def _run_frame(args):
     return np.concatenate(all_s)
 
 
+def precompute_frames(alpha, L, n_steps, warmup, n_seeds, betas):
+    """Precompute joint histograms for each beta (parallelized)."""
+    from concurrent.futures import ProcessPoolExecutor
+    tasks = [(alpha, L, n_steps, warmup, n_seeds, float(b)) for b in betas]
+    frames = []
+    with ProcessPoolExecutor() as ex:
+        for samples in tqdm(ex.map(_run_frame, tasks), total=len(tasks),
+                            desc="precompute beta sweep"):
+            frames.append(joint_histogram(samples))
+    return frames
+
+
 def animation(alpha, L, n_steps, warmup, n_seeds,
               b_min=0.04, b_max=0.35, n_frames=80, out="results/fig3_anim.mp4"):
     """3D animation sweeping beta, showing peaks emerge and merge.
@@ -110,15 +120,8 @@ def animation(alpha, L, n_steps, warmup, n_seeds,
     an independent ensemble run).
     """
     from matplotlib import animation
-    from concurrent.futures import ProcessPoolExecutor
     betas = np.linspace(b_min, b_max, n_frames)
-    tasks = [(alpha, L, n_steps, warmup, n_seeds, float(b)) for b in betas]
-
-    precompute = []
-    with ProcessPoolExecutor() as ex:
-        for samples in tqdm(ex.map(_run_frame, tasks), total=len(tasks),
-                            desc="precompute beta sweep"):
-            precompute.append(joint_histogram(samples))
+    precompute = precompute_frames(alpha, L, n_steps, warmup, n_seeds, betas)
 
     fig = plt.figure(figsize=(7, 6))
     ax = fig.add_subplot(111, projection="3d")
@@ -132,6 +135,43 @@ def animation(alpha, L, n_steps, warmup, n_seeds,
 
     anim = animation.FuncAnimation(fig, update, frames=n_frames,
                                    blit=False, interval=150)
+    anim.save(out, writer="ffmpeg", fps=8, dpi=90)
+    plt.show()
+
+
+def animation_2d(alpha, L, n_steps, warmup, n_seeds,
+                 b_min=0.04, b_max=0.35, n_frames=80,
+                 out="results/fig3_anim_2d.mp4"):
+    """2D heatmap animation of P(rho1,rho2) sweeping beta.
+
+    Top-down heatmap makes the two peaks much easier to distinguish than a 3D
+    surface (which can hide them behind the base/grey). Same precompute as the
+    3D animation, so running both is cheap.
+    """
+    from matplotlib import animation
+    betas = np.linspace(b_min, b_max, n_frames)
+    precompute = precompute_frames(alpha, L, n_steps, warmup, n_seeds, betas)
+
+    fig, ax = plt.subplots(figsize=(6, 5.5))
+    H0, xe, ye = precompute[0]
+    vmax = max(H.max() for H, _, _ in precompute)
+    im = ax.imshow(H0.T, origin="lower", aspect="equal",
+                   extent=[xe[0], xe[-1], ye[0], ye[-1]],
+                   cmap="turbo", vmin=0, vmax=vmax)
+    cb = plt.colorbar(im, ax=ax, label=r"$P(\rho_1,\rho_2)$")
+    ax.plot([0, 1], [0, 1], "r--", lw=0.8)
+    ax.set_xlabel(r"$\rho_1$")
+    ax.set_ylabel(r"$\rho_2$")
+    title = ax.set_title(rf"$\beta={betas[0]:.4f}$")
+
+    def update(frame):
+        H, _, _ = precompute[frame]
+        im.set_data(H.T)
+        title.set_text(rf"$\beta={betas[frame]:.4f}$")
+        return im, title
+
+    anim = animation.FuncAnimation(fig, update, frames=n_frames,
+                                   blit=True, interval=150)
     anim.save(out, writer="ffmpeg", fps=8, dpi=90)
     plt.show()
 
