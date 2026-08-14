@@ -6,6 +6,7 @@ current, and density scans can be parallelized across CPU cores.
 """
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from tqdm import tqdm
 
 from asep import TwoChannelASEP
 
@@ -20,15 +21,16 @@ def _run_point(task):
     return J1, J2, r1, r2
 
 
-def scan_points(tasks, n_workers=None):
+def scan_points(tasks, n_workers=None, desc="scan"):
     """
     Run a list of independent (alpha, beta, L, n_steps, warmup, sample_every, seed)
     tasks in parallel and return their (J1, J2, rho1, rho2) results, preserving order.
+    Shows a tqdm progress bar.
     """
     results = [None] * len(tasks)
     with ProcessPoolExecutor(max_workers=n_workers) as ex:
         futures = {ex.submit(_run_point, t): j for j, t in enumerate(tasks)}
-        for fut in as_completed(futures):
+        for fut in tqdm(as_completed(futures), total=len(tasks), desc=desc):
             results[futures[fut]] = fut.result()
     return results
 

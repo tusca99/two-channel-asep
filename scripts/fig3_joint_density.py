@@ -74,9 +74,15 @@ def main():
         (0.95, "MC"),
     ]
 
+    # Collect all samples first (with progress), save for re-plotting
+    all_samples = {}
+    for beta, label in tqdm(betas, desc="beta sweep"):
+        all_samples[beta] = collect_joint_samples(alpha, beta, L, n_steps, warmup)
+    np.savez("results/fig3_samples.npz", **{f"b{beta}": s for beta, s in all_samples.items()})
+
     fig = plt.figure(figsize=(15, 12))
-    for i, (beta, label) in enumerate(tqdm(betas, desc="beta sweep")):
-        samples = collect_joint_samples(alpha, beta, L, n_steps, warmup)
+    for i, (beta, label) in enumerate(betas):
+        samples = all_samples[beta]
         H, xedges, yedges = joint_histogram(samples)
         ax = fig.add_subplot(3, 3, i + 1, projection="3d")
         plot_3d(ax, H, xedges, yedges, alpha, beta, label)
