@@ -103,6 +103,9 @@ def precompute_frames(alpha, L, n_steps, warmup, n_seeds, betas, bins=48):
     Parallelizes at the individual (beta, seed) run level for fine-grained
     load balancing: n_frames * n_seeds independent MC runs are distributed
     across the pool, then grouped back per beta.
+
+    Returns (mean_frames, std_frames) where std_frames is the per-cell std of
+    the histogram across seeds (a measure of run-to-run uncertainty).
     """
     from concurrent.futures import ProcessPoolExecutor
     n_frames = len(betas)
@@ -117,12 +120,16 @@ def precompute_frames(alpha, L, n_steps, warmup, n_seeds, betas, bins=48):
             results.append(samples)
 
     # Group by beta index
-    frames = []
+    mean_frames = []
+    std_frames = []
     for fi in range(n_frames):
-        group = np.concatenate([results[fi * n_seeds + seed]
-                                for seed in range(n_seeds)])
-        frames.append(joint_histogram(group, bins=bins))
-    return frames
+        seeds = [results[fi * n_seeds + seed] for seed in range(n_seeds)]
+        # per-seed histogram for the std of the distribution
+        H_per_seed = np.stack([joint_histogram(s, bins=bins)[0] for s in seeds])
+        group = np.concatenate(seeds)
+        mean_frames.append(joint_histogram(group, bins=bins))
+        std_frames.append(H_per_seed.std(axis=0))
+    return mean_frames, std_frames
 
 
 def animation(alpha, L, n_steps, warmup, n_seeds,
@@ -135,15 +142,15 @@ def animation(alpha, L, n_steps, warmup, n_seeds,
     """
     from matplotlib import animation
     betas = np.linspace(b_min, b_max, n_frames)
-    precompute = precompute_frames(alpha, L, n_steps, warmup, n_seeds, betas,
-                                   bins=bins)
+    mean_frames, _ = precompute_frames(alpha, L, n_steps, warmup, n_seeds,
+                                       betas, bins=bins)
 
     fig = plt.figure(figsize=(7, 6))
     ax = fig.add_subplot(111, projection="3d")
 
     def update(frame):
         ax.clear()
-        H, xe, ye = precompute[frame]
+        H, xe, ye = mean_frames[frame]
         plot_3d(ax, H, xe, ye, betas[frame], "")
         ax.set_title(rf"$\beta={betas[frame]:.4f}$")
         return ax
@@ -162,29 +169,54 @@ def animation_2d(alpha, L, n_steps, warmup, n_seeds,
     Top-down heatmap makes the two peaks much easier to distinguish than a 3D
     surface (which can hide them behind the base/grey). Same precompute as the
     3D animation, so running both is cheap.
+
+    Two panels: mean P on the left, run-to-run std on the right (shows where
+    the ensemble is uncertain, e.g. the SSB region where seeds land in
+    different broken states).
     """
     from matplotlib import animation
     betas = np.linspace(b_min, b_max, n_frames)
-    precompute = precompute_frames(alpha, L, n_steps, warmup, n_seeds, betas,
-                                   bins=bins)
+    mean_frames, std_frames = precompute_frames(alpha, L, n_steps, warmup,
+                                                n_seeds, betas, bins=bins)
 
-    fig, ax = plt.subplots(figsize=(6, 5.5))
-    H0, xe, ye = precompute[0]
-    vmax = max(H.max() for H, _, _ in precompute)
-    im = ax.imshow(H0.T, origin="lower", aspect="equal",
-                   extent=[xe[0], xe[-1], ye[0], ye[-1]],
-                   cmap="turbo", vmin=0, vmax=vmax)
-    cb = plt.colorbar(im, ax=ax, label=r"$P(\rho_1,\rho_2)$")
-    ax.plot([0, 1], [0, 1], "r--", lw=0.8)
-    ax.set_xlabel(r"$\rho_1$")
-    ax.set_ylabel(r"$\rho_2$")
-    title = ax.set_title(rf"$\beta={betas[0]:.4f}$")
+    H0, xe, ye = mean_frames[0]
+    vmax = max(H.max() for H, _, _ in mean_frames)
+    smax = max(S.max() for S in std_frames)
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5.5))
+    axm, axs = axes
+
+    im = axm.imshow(H0.T, origin="lower", aspect="equal",
+                    extent=[xe[0], xe[-1], ye[0], ye[-1]],
+                    cmap="turbo", vmin=0, vmax=vmax)
+    axm.plot([0, 1], [0, 1], "r--", lw=0.8)
+    axm.set_xlabel(r"$\rho_1$"); axm.set_ylabel(r"$\rho_2$")
+    axm.set_title(r"mean $P(\rho_1,\rho_2)$")
+    cb = plt.colorbar(im, ax=axm, label=r"$P$")
+
+    ims = axs.imshow(std_frames[0].T, origin="lower", aspect="equal",
+                     extent=[xe[0], xe[-1], ye[0], ye[-1]],
+                     cmap="inferno", vmin=0, vmax=smax)
+    axs.plot([0, 1], [0, 1], "r--", lw=0.8)
+    axs.set_xlabel(r"$\rho_1$"); axs.set_ylabel(r"$\rho_2$")
+    axs.set_title(r"run-to-run std of $P$")
+    cbs = plt.colorbar(ims, ax=axs, label=r"$\sigma_P$")
+    title = fig.suptitle(rf"$\beta={betas[0]:.4f}$")
 
     def update(frame):
-        H, _, _ = precompute[frame]
-        im.set_data(H.T)
+        im.set_data(mean_frames[frame][0].T)
+        ims.set_data(std_frames[frame].T)
         title.set_text(rf"$\beta={betas[frame]:.4f}$")
-        return im, title
+        return im, ims, title
+
+    anim = animation.FuncAnimation(fig, update, frames=n_frames,
+                                   blit=True, interval=150)
+    anim.save(out, writer="ffmpeg", fps=8, dpi=90)
+    def update(frame):
+        im.set_data(mean_frames[frame][0].T)
+        ims.set_data(std_frames[frame].T)
+        title.set_text(rf"$\beta={betas[frame]:.4f}$")
+        return im, ims, title
 
     anim = animation.FuncAnimation(fig, update, frames=n_frames,
                                    blit=True, interval=150)
