@@ -67,20 +67,16 @@ def plot_mft_boundaries(ax):
 
 def scan_phase_diagram(alphas, betas, L, n_steps, warmup, sample_every, seed=0):
     """
-    Classify the phase at each (alpha, beta) grid point via MC.
+    Classify the phase at each (alpha, beta) grid point via MC (parallel).
 
     Returns a 2D array of phase labels (strings).
     """
-    rng = np.random.default_rng(seed)
-    grid = np.empty((len(alphas), len(betas)), dtype=object)
-    for i, a in enumerate(alphas):
-        for j, b in enumerate(betas):
-            sim = TwoChannelASEP(L=L, alpha=a, beta=b, seed=int(rng.integers(1e9)))
-            sim.run(n_steps=n_steps, sample_every=sample_every, warmup=warmup)
-            J1, J2 = sim.get_currents()
-            rho1, rho2 = sim.get_bulk_densities()
-            label, _ = classify_phase(J1, J2, rho1, rho2, a, b, L)
-            grid[i, j] = label
+    from asep.parallel import make_tasks, scan_points, grid_to_labels
+    tasks = make_tasks(alphas, betas, L, n_steps, warmup, sample_every, seed)
+    res = scan_points(tasks, desc="phase grid")
+    grid = grid_to_labels(res, alphas, betas,
+                          lambda J1, J2, r1, r2, a, b: classify_phase(
+                              J1, J2, r1, r2, a, b, L)[0])
     return grid
 
 
@@ -110,10 +106,10 @@ def add_phase_legend(ax):
 
 
 def main():
-    L = 200
-    n_steps = 300_000
-    warmup = 30_000
-    sample_every = 200
+    L = 1000
+    n_steps = 2_000_000
+    warmup = 200_000
+    sample_every = 400
 
     # (a) full parameter space: coarse grid
     alphas = np.linspace(0.05, 0.95, 31)

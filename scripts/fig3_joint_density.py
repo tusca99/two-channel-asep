@@ -97,7 +97,7 @@ def _run_single(args):
     return sim.get_joint_density_samples()
 
 
-def precompute_frames(alpha, L, n_steps, warmup, n_seeds, betas):
+def precompute_frames(alpha, L, n_steps, warmup, n_seeds, betas, bins=48):
     """Precompute joint histograms for each beta (parallelized).
 
     Parallelizes at the individual (beta, seed) run level for fine-grained
@@ -121,12 +121,13 @@ def precompute_frames(alpha, L, n_steps, warmup, n_seeds, betas):
     for fi in range(n_frames):
         group = np.concatenate([results[fi * n_seeds + seed]
                                 for seed in range(n_seeds)])
-        frames.append(joint_histogram(group))
+        frames.append(joint_histogram(group, bins=bins))
     return frames
 
 
 def animation(alpha, L, n_steps, warmup, n_seeds,
-              b_min=0.04, b_max=0.35, n_frames=80, out="results/fig3_anim.mp4"):
+              b_min=0.04, b_max=0.35, n_frames=80, bins=48,
+              out="results/fig3_anim.mp4"):
     """3D animation sweeping beta, showing peaks emerge and merge.
 
     Precomputation of the frames is parallelized across cores (each frame is
@@ -134,7 +135,8 @@ def animation(alpha, L, n_steps, warmup, n_seeds,
     """
     from matplotlib import animation
     betas = np.linspace(b_min, b_max, n_frames)
-    precompute = precompute_frames(alpha, L, n_steps, warmup, n_seeds, betas)
+    precompute = precompute_frames(alpha, L, n_steps, warmup, n_seeds, betas,
+                                   bins=bins)
 
     fig = plt.figure(figsize=(7, 6))
     ax = fig.add_subplot(111, projection="3d")
@@ -153,7 +155,7 @@ def animation(alpha, L, n_steps, warmup, n_seeds,
 
 
 def animation_2d(alpha, L, n_steps, warmup, n_seeds,
-                 b_min=0.04, b_max=0.35, n_frames=80,
+                 b_min=0.04, b_max=0.35, n_frames=80, bins=48,
                  out="results/fig3_anim_2d.mp4"):
     """2D heatmap animation of P(rho1,rho2) sweeping beta.
 
@@ -163,7 +165,8 @@ def animation_2d(alpha, L, n_steps, warmup, n_seeds,
     """
     from matplotlib import animation
     betas = np.linspace(b_min, b_max, n_frames)
-    precompute = precompute_frames(alpha, L, n_steps, warmup, n_seeds, betas)
+    precompute = precompute_frames(alpha, L, n_steps, warmup, n_seeds, betas,
+                                   bins=bins)
 
     fig, ax = plt.subplots(figsize=(6, 5.5))
     H0, xe, ye = precompute[0]
