@@ -57,7 +57,8 @@ Hardware: RTX 2060 (8GB), nvcc 12.9, numba CUDA works. Chose numba CUDA over tor
 ### Phase 3.6: BKL (active-site list) — DONE, 2.2x speedup
 - [x] asep/bkl.py: Bortz-Kalos-Lebowitz, incremental O(1) active-list update in 3-site window. Cuts per-step cost from O(L) to O(active). Verified correct vs Gillespie; ~2.2x speedup across densities.
 - [x] Wire BKL into TwoChannelASEP.run() as an option (use_bkl=True) so scans use it by default
-- [x] Add xorshift64* inline RNG (run_bkl_xor) as a numpy-free path. Result: only 1.07x faster — numpy batched RNG gen is ~0ms, so RNG was never the real bottleneck. Keep xorshift as an optional backend, not the default.
+- [x] Add xorshift64* inline RNG (run_bkl_xor) as a numpy-free path. Result: only 1.07x faster. Corrected measurement: RNG gen is ~3.9% of the full run (35ms of 914ms), not 30% — an earlier mislabel from comparing against the raw kernel only. RNG was never the bottleneck; xorshift kept as optional backend, not default.
+- [x] Parallelization strategy CONFIRMED: one thread per run (independent realizations in parallel via ProcessPool). MC is serial within a trajectory, so parallelizing steps is not possible; the only parallelism is across realizations.
 - [x] C vs numba: wrote a clean C BKL (gcc -O2). numba BKL (326 ns/step) BEATS the C version (559 ns/step). LLVM backend > hand-written C here. C would NOT drastically help.
 - [ ] OPTIONAL: xorshift in model.run() as default if we want to drop the numpy uniform stream (minor gain)
 
