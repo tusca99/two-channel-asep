@@ -200,6 +200,42 @@ def test_same_seed_is_reproducible():
     assert np.array_equal(s1.lane2, s2.lane2)
 
 
+def _run_obs(fn, L, alpha, beta, n_steps, seed, warmup=0):
+    rng = np.random.default_rng(seed)
+    lane1 = (rng.random(L) < 0.4).astype(np.int8)
+    lane2 = (rng.random(L) < 0.4).astype(np.int8)
+    uniforms = rng.random((n_steps + warmup) * 3)
+    fn(lane1, lane2, alpha, beta, warmup, uniforms, 0)
+    dt, e1, e2, _ = fn(lane1, lane2, alpha, beta, n_steps, uniforms, warmup * 3)
+    return e1 / dt, e2 / dt
+
+
+@pytest.mark.parametrize("alpha,beta", [
+    (0.2, 0.8),   # LD
+    (0.9, 0.9),   # MC
+    (0.3, 0.3),
+])
+def test_fenwick_matches_classic(alpha, beta):
+    """
+    Fenwick-tree kernel must agree with the classic BKL kernel.
+
+    Uses only single-phase parameter regimes: in the SSB (bistable) regime the
+    two kernels, started from the same configuration but with different event
+    selection orders, settle into long-lived broken-symmetry states that do not
+    statistically decorrelate within feasible runs, so direct comparison there
+    is meaningless.
+    """
+    from asep.bkl import run_bkl, run_bkl_fenwick
+    L = 500
+    n_steps = 4_000_000
+    warmup = 300_000
+    seed = 42
+    cl = _run_obs(run_bkl, L, alpha, beta, n_steps, seed, warmup)
+    fw = _run_obs(run_bkl_fenwick, L, alpha, beta, n_steps, seed, warmup)
+    assert abs(cl[0] - fw[0]) < 0.01
+    assert abs(cl[1] - fw[1]) < 0.01
+
+
 if __name__ == "__main__":
     for a, b in [(0.2, 0.8), (0.9, 0.9)]:
         py = _obs_py(a, b, 100, 200000, 20000, 200, 42)
