@@ -65,3 +65,17 @@ def mft_densities(alpha, beta):
     if np.isnan(a1):
         return np.nan, np.nan
     return a1, a1
+
+
+def mft_dense_dilute(alpha, beta):
+    """
+    MFT dense and dilute channel densities (max/min of rho1,rho2).
+
+    Invariant to the Z2 channel-swap / state-flipping: in the HD/LD phase the
+    dense channel has rho ~ 1-beta and the dilute channel rho ~ alpha*beta;
+    in symmetric phases both are equal.
+    """
+    r1, r2 = mft_densities(alpha, beta)
+    if np.isnan(r1):
+        return np.nan, np.nan
+    return max(r1, r2), min(r1, r2)
