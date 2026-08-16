@@ -34,6 +34,13 @@ ANIM_BETAS = np.linspace(0.04, 0.35, 40).tolist()
 ALL_BETAS = sorted(set(SNAPSHOT_BETAS) | set(round(b, 6) for b in ANIM_BETAS))
 
 
+def set_full_range(b_min=0.02, b_max=1.0, n_frames=100):
+    """Configure fig3 for a full beta sweep (paper-like, 0.02..1)."""
+    global SNAPSHOT_BETAS, ANIM_BETAS, ALL_BETAS
+    ANIM_BETAS = np.linspace(b_min, b_max, n_frames).tolist()
+    ALL_BETAS = sorted(set(SNAPSHOT_BETAS) | set(round(b, 6) for b in ANIM_BETAS))
+
+
 def scan_all(out="fig3_points.npz"):
     """One GPU scan over ALL_BETAS; save per-replica (rho1,rho2) points.
 
@@ -201,6 +208,9 @@ def animation_3d(pts, out="fig3_anim.mp4"):
 
 if __name__ == "__main__":
     import sys
+    # --full: use the full beta range 0.02..1.0 (paper-like animation)
+    if "--full" in sys.argv:
+        set_full_range()
     # --load: only build plots from saved points, do NOT re-scan
     if "--load" in sys.argv:
         pts = load_points()
