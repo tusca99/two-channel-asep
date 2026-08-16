@@ -162,29 +162,27 @@ So the classic and Fenwick/GPU paths do NOT converge in time: they cross. The
 fig3 slowdown at beta=0.02 is the fixed per-step cost not being amortized over
 a nearly-blocked (total_rate~0) state, not an event-rate bottleneck.
 
-## Measured throughput vs beta (GPU, L=1000, nrep=2048, steps=300k)
+## Measured throughput vs beta (GPU, L=1000, nrep=2048, warmup=200k)
 
-| beta | Msteps/s | rho ~ |
-|------|----------|-------|
-| 0.05 | 31.6 | 0.39 |
-| 0.15 | 69.7 | 0.38 |
-| 0.30 | 72.9 | 0.38 |
-| 0.60 | 72.7 | 0.40 |
-| 0.90 | 72.7 | 0.41 |
+Earlier measurements (with too-short warmup) appeared to show a large low-beta
+slowdown, but with a properly equilibrated warmup the throughput is essentially
+FLAT in beta:
 
-Key finding: density is roughly CONSTANT (~0.38-0.41) across beta, so the
-"low density -> few events" explanation is WRONG for the slowdown. Instead, at
-very low beta the total rate R is small (the system spends long stretches
-nearly blocked), so -log(u)/R yields huge time steps and many BKL steps do no
-useful work — yet each step still pays the full Fenwick O(log L). At high beta
-R is large, every step advances time, throughput saturates at ~72 Msteps/s.
+| beta | Msteps/s (kernel) | rho ~ |
+|------|-------------------|-------|
+| 0.05 | 67.1 | 0.35 |
+| 0.30 | 72.0 | 0.35 |
+| 0.90 | 71.9 | 0.41 |
 
-Implication for a "threshold / hybrid" idea: switching back to classic
-double-loop BKL at high beta would be WORSE (O(L) vs O(log L)). The real
-optimization for low beta is to skip inert steps (e.g. detect R~0 and advance
-time directly), not to swap the selection algorithm.
+So the Fenwick/GPU kernel is uniformly fast (~70 Msteps/s) across beta; the
+earlier "31 vs 72" gap was an artefact of an un-equilibrated low-beta run.
+Also, density DOES increase with beta (0.35 at low beta -> 0.41 at beta=0.9),
+so the "constant rho" claim in a draft of these notes was wrong too.
 
-a nearly-blocked (total_rate~0) state, not an event-rate bottleneck.
+Consequence: there is NO serious performance problem at low beta and no need
+for an R=0 / hybrid optimization. (A "skip inert steps" idea would in any case
+be invalid: every BKL step is a real event, and dropping events corrupts
+currents and density dynamics.)
 
 ## Crash notes / driver (not a code bug)
 

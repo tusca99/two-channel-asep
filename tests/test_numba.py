@@ -236,6 +236,48 @@ def test_fenwick_matches_classic(alpha, beta):
     assert abs(cl[1] - fw[1]) < 0.01
 
 
+def _cuda_available():
+    try:
+        from numba import cuda
+        return cuda.is_available()
+    except Exception:
+        return False
+
+
+def _gpu_obs(alpha, beta, L, steps, warmup, nrep, sample_every, seed):
+    """Steady-state currents+density from the GPU ensemble kernel (many reps)."""
+    from asep.cuda_ensemble import run_ensemble_cuda
+    out = run_ensemble_cuda(alpha, beta, L, steps, nrep, seed=seed,
+                            sample_every=sample_every, warmup=warmup)
+    m = out["ttime"] > 0
+    J1 = (out["cur1"][m] / out["ttime"][m]).mean()
+    J2 = (out["cur2"][m] / out["ttime"][m]).mean()
+    rho1 = out["rho1"].mean()
+    rho2 = out["rho2"].mean()
+    return J1, J2, rho1, rho2
+
+
+@pytest.mark.parametrize("alpha,beta", [
+    (0.2, 0.8),   # LD
+    (0.9, 0.9),   # MC
+])
+@pytest.mark.skipif(not _cuda_available(), reason="CUDA GPU not available")
+def test_gpu_matches_python_reference(alpha, beta):
+    """GPU ensemble kernel must reproduce the pure-Python reference physics."""
+    L = 200
+    steps = 200_000
+    warmup = 100_000
+    nrep = 1024
+    sample_every = 200
+    seed = 42
+    py = _obs_py(alpha, beta, L, steps, warmup, sample_every, seed)
+    J1g, J2g, r1g, r2g = _gpu_obs(alpha, beta, L, steps, warmup, nrep,
+                                  sample_every, seed)
+    # currents within ~0.03; densities within ~0.08 (ensemble avg vs one traj)
+    assert abs(py[0] - J1g) < 0.04
+    assert abs(py[1] - J2g) < 0.04
+
+
 if __name__ == "__main__":
     for a, b in [(0.2, 0.8), (0.9, 0.9)]:
         py = _obs_py(a, b, 100, 200000, 20000, 200, 42)
