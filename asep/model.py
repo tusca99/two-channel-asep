@@ -1,6 +1,6 @@
 import numpy as np
 from .mc import run_mc_batched, make_uniforms
-from .bkl import run_bkl
+from .bkl import run_bkl_fenwick
 
 
 class TwoChannelASEP:
@@ -71,8 +71,8 @@ class TwoChannelASEP:
         warmup : int
             Number of initial steps to discard before sampling
         use_bkl : bool
-            Use the BKL (active-site list) kernel (~2.2x faster) instead of
-            the full-scan Gillespie kernel.
+            Use the BKL Fenwick-tree kernel (~4x faster, same physics) instead
+            of the full-scan Gillespie kernel.
         """
         block = 1000
         done = 0
@@ -80,7 +80,7 @@ class TwoChannelASEP:
             step = min(block, n_steps - done)
             uniforms = make_uniforms(step * 3, self._rng)
             if use_bkl:
-                dt, e1, e2, _ = run_bkl(
+                dt, e1, e2, _ = run_bkl_fenwick(
                     self.lane1, self.lane2, self.alpha, self.beta, step,
                     uniforms, 0
                 )

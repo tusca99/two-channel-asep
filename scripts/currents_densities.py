@@ -21,12 +21,19 @@ os.makedirs(OUT, exist_ok=True)
 
 
 def scan_beta_stats(alpha, betas, L, n_steps, warmup, sample_every, n_reps,
-                    seed=0):
+                    seed=0, use_gpu=True):
     """Mean +/- sem over beta for fixed alpha, across n_reps seeds.
 
     Also returns dense/dilute channel densities (max/min of rho1,rho2 per
     sample, then averaged) which are invariant to state-flipping.
+
+    With use_gpu=True all (beta, rep) replicas run in a single GPU launch.
     """
+    if use_gpu:
+        from asep.parallel import _cuda_available, scan_beta_gpu
+        if _cuda_available():
+            return scan_beta_gpu(alpha, betas, L, n_steps, warmup, sample_every,
+                                 n_reps, seed=seed)
     rng = np.random.default_rng(seed)
     tasks = [(alpha, b, L, n_steps, warmup, sample_every,
               int(rng.integers(1e9)))
@@ -52,7 +59,8 @@ def scan_beta_stats(alpha, betas, L, n_steps, warmup, sample_every, n_reps,
     return (J1, J2, r1, r2, eJ1, eJ2, er1, er2, dense, dilute, edense, edilute)
 
 
-def load_or_scan(alpha, betas, L, n_steps, warmup, sample_every, n_reps):
+def load_or_scan(alpha, betas, L, n_steps, warmup, sample_every, n_reps,
+                 use_gpu=True):
     """Load cached .npy or scan; save result."""
     fname = f"{OUT}/alpha{alpha}.npz"
     if os.path.exists(fname):
@@ -61,7 +69,7 @@ def load_or_scan(alpha, betas, L, n_steps, warmup, sample_every, n_reps):
                 d["eJ1"], d["eJ2"], d["erho1"], d["erho2"],
                 d["dense"], d["dilute"], d["edense"], d["edilute"])
     res = scan_beta_stats(alpha, betas, L, n_steps, warmup, sample_every,
-                          n_reps)
+                          n_reps, use_gpu=use_gpu)
     np.savez(fname, J1=res[0], J2=res[1], rho1=res[2], rho2=res[3],
              eJ1=res[4], eJ2=res[5], erho1=res[6], erho2=res[7],
              dense=res[8], dilute=res[9], edense=res[10], edilute=res[11],
@@ -117,7 +125,7 @@ def main():
     n_steps = 3_000_000
     warmup = 300_000
     sample_every = 400
-    n_reps = 8
+    n_reps = 32
     betas = np.linspace(0.05, 0.95, 30)
 
     alphas = [0.1, 0.8, 0.9]

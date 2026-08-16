@@ -70,23 +70,28 @@ def _bit_find(bit, base, r, L):
 
 @cuda.jit(device=True)
 def _execute(lane1, lane2, base, L, site, mtype):
-    if mtype == 0:      # hop1_right
+    """Execute move; returns (exited_ch1, exited_ch2, d_occ1, d_occ2)."""
+    if mtype == 0:      # hop1_right (occupancy unchanged within lane1)
         lane1[base + site] = 0
         lane1[base + site + 1] = 1
+        return 0, 0, 0, 0
     elif mtype == 1:    # hop2_left
         lane2[base + site] = 0
         lane2[base + site - 1] = 1
+        return 0, 0, 0, 0
     elif mtype == 2:    # enter1
         lane1[base] = 1
+        return 0, 0, 1, 0
     elif mtype == 3:    # enter2
         lane2[base + L - 1] = 1
+        return 0, 0, 0, 1
     elif mtype == 4:    # exit1
         lane1[base + L - 1] = 0
-        return 1, 0
+        return 1, 0, -1, 0
     elif mtype == 5:    # exit2
         lane2[base] = 0
-        return 0, 1
-    return 0, 0
+        return 0, 1, 0, -1
+    return 0, 0, 0, 0
 
 
 @cuda.jit(device=True)
@@ -116,23 +121,30 @@ def _pick_move(lane1, lane2, base, alpha, beta, L, site, r):
         cum += beta
         if r < cum:
             return _execute(lane1, lane2, base, L, site, 5)
-    return 0, 0
+    return 0, 0, 0, 0
 
 
 @cuda.jit
 def _run_kernel(lane1, lane2, rates, bit, cur1, cur2, tot_time,
-                alpha, beta, L, steps, states):
+                alpha_arr, beta_arr, L, steps, warmup, states,
+                sample_every, stats_acc):
     t = cuda.grid(1)
     if t >= cur1.shape[0]:
         return
     base = t * L
+    alpha = alpha_arr[t]
+    beta = beta_arr[t]
 
-    # init lanes at density ~0.4
+    # occupancy counters for O(1) bulk-density updates
+    n1 = 0
+    n2 = 0
     for i in range(L):
         u = xoroshiro128p_uniform_float64(states, t)
         lane1[base + i] = 1 if u < 0.4 else 0
+        n1 += lane1[base + i]
         u = xoroshiro128p_uniform_float64(states, t)
         lane2[base + i] = 1 if u < 0.4 else 0
+        n2 += lane2[base + i]
 
     for i in range(L):
         rates[base + i] = _site_rate(lane1, lane2, base, alpha, beta, L, i)
@@ -148,7 +160,8 @@ def _run_kernel(lane1, lane2, rates, bit, cur1, cur2, tot_time,
     ttime = 0.0
     c1 = 0
     c2 = 0
-    for step in range(steps):
+    n_sample = 0
+    for step in range(steps + warmup):
         if total_rate == 0.0:
             ttime += 0.001
             continue
@@ -160,10 +173,12 @@ def _run_kernel(lane1, lane2, rates, bit, cur1, cur2, tot_time,
         chosen = _bit_find(bit, base, u2 * total_rate, L)
 
         u3 = xoroshiro128p_uniform_float64(states, t)
-        e1, e2 = _pick_move(lane1, lane2, base, alpha, beta, L, chosen,
-                            u3 * rates[base + chosen])
+        e1, e2, dn1, dn2 = _pick_move(lane1, lane2, base, alpha, beta, L, chosen,
+                                      u3 * rates[base + chosen])
         c1 += e1
         c2 += e2
+        n1 += dn1
+        n2 += dn2
 
         lo = chosen - 1
         if lo < 0:
@@ -180,25 +195,111 @@ def _run_kernel(lane1, lane2, rates, bit, cur1, cur2, tot_time,
                 total_rate += delta
                 rates[base + i] = new_r
 
+        # accumulate bulk-density statistics on-device (O(1) per sample)
+        if (sample_every > 0 and step >= warmup
+                and (step - warmup) % sample_every == 0):
+            r1 = n1 / L
+            r2 = n2 / L
+            d = r1 - r2
+            mm = r1 if r1 > r2 else r2
+            mn = r1 if r1 < r2 else r2
+            # per-replica running sums: rho1_sum, rho1_sq, rho2_sum, rho2_sq,
+            # diff_sq, dense_sum, dilute_sum, n
+            stats_acc[t * 8 + 0] += r1
+            stats_acc[t * 8 + 1] += r1 * r1
+            stats_acc[t * 8 + 2] += r2
+            stats_acc[t * 8 + 3] += r2 * r2
+            stats_acc[t * 8 + 4] += d * d
+            stats_acc[t * 8 + 5] += mm
+            stats_acc[t * 8 + 6] += mn
+            stats_acc[t * 8 + 7] += 1.0
+
     tot_time[t] = ttime
     cur1[t] = c1
     cur2[t] = c2
 
 
-def run_ensemble_cuda(alpha, beta, L, steps, n_replicas, seed=0, block=256):
-    """Run n_replicas independent ASEP BKL-Fenwick sims on GPU (replica-major).
-    Returns (cur1, cur2, ttime) arrays of shape (n_replicas,)."""
-    lane1 = cuda.device_array(n_replicas * L, dtype=np.int8)
-    lane2 = cuda.device_array(n_replicas * L, dtype=np.int8)
-    rates = cuda.device_array(n_replicas * L, dtype=np.float32)
-    bit = cuda.device_array(n_replicas * (L + 1), dtype=np.float32)
-    cur1 = cuda.device_array(n_replicas, dtype=np.float64)
-    cur2 = cuda.device_array(n_replicas, dtype=np.float64)
-    ttime = cuda.device_array(n_replicas, dtype=np.float64)
-    states = create_xoroshiro128p_states(n_replicas, seed=seed)
+def run_ensemble_cuda(alpha, beta, L, steps, n_replicas, seed=0, block=256,
+                      sample_every=0, warmup=0, alphas=None, betas=None):
+    """
+    Run n_replicas independent ASEP BKL-Fenwick sims on GPU (replica-major).
 
-    grid = (n_replicas + block - 1) // block
+    If `alphas`/`betas` are given (length n_replicas), each replica uses its
+    own (alpha, beta) — a single-launch grid scan. Otherwise all replicas use
+    the scalar `alpha`, `beta`.
+
+    Bulk-density statistics are accumulated on-device (O(1) per sample) rather
+    than stored raw, so sampling is cheap even for dense sample_every.
+
+    Returns a dict with:
+      cur1, cur2, ttime : (n_replicas,) currents and total time per replica
+      rho1, rho2        : time-averaged bulk densities per replica
+      std_diff          : std(rho1 - rho2) over samples per replica (SSB order
+                          parameter, robust to state flipping)
+      dense, dilute     : mean of max/min(rho1,rho2) over samples per replica
+      n_samples         : number of density samples accumulated per replica
+      alphas, betas     : per-replica parameters
+
+    `warmup` steps are discarded before any density sampling; currents and
+    total time still accumulate over the full run (matching the CPU path).
+    """
+    nrep = n_replicas
+    if alphas is None:
+        alphas = np.full(nrep, alpha, dtype=np.float64)
+    else:
+        alphas = np.asarray(alphas, dtype=np.float64)
+    if betas is None:
+        betas = np.full(nrep, beta, dtype=np.float64)
+    else:
+        betas = np.asarray(betas, dtype=np.float64)
+
+    lane1 = cuda.device_array(nrep * L, dtype=np.int8)
+    lane2 = cuda.device_array(nrep * L, dtype=np.int8)
+    rates = cuda.device_array(nrep * L, dtype=np.float32)
+    bit = cuda.device_array(nrep * (L + 1), dtype=np.float32)
+    cur1 = cuda.device_array(nrep, dtype=np.float64)
+    cur2 = cuda.device_array(nrep, dtype=np.float64)
+    ttime = cuda.device_array(nrep, dtype=np.float64)
+    stats = cuda.device_array(nrep * 8, dtype=np.float64)
+    alpha_d = cuda.to_device(alphas)
+    beta_d = cuda.to_device(betas)
+    states = create_xoroshiro128p_states(nrep, seed=seed)
+
+    grid = (nrep + block - 1) // block
     _run_kernel[grid, block](lane1, lane2, rates, bit, cur1, cur2, ttime,
-                             alpha, beta, L, steps, states)
+                             alpha_d, beta_d, L, steps, warmup, states,
+                             sample_every, stats)
     cuda.synchronize()
-    return cur1.copy_to_host(), cur2.copy_to_host(), ttime.copy_to_host()
+
+    c1 = cur1.copy_to_host()
+    c2 = cur2.copy_to_host()
+    tt = ttime.copy_to_host()
+    st = stats.copy_to_host().reshape(nrep, 8)
+
+    out = {
+        "cur1": c1, "cur2": c2, "ttime": tt,
+        "alphas": alphas, "betas": betas,
+    }
+    if sample_every > 0:
+        ns = st[:, 7]
+        rho1 = np.zeros(nrep)
+        rho2 = np.zeros(nrep)
+        std_diff = np.zeros(nrep)
+        dense = np.zeros(nrep)
+        dilute = np.zeros(nrep)
+        for i in range(nrep):
+            n = ns[i]
+            if n > 0:
+                rho1[i] = st[i, 0] / n
+                rho2[i] = st[i, 2] / n
+                var = st[i, 4] / n - (rho1[i] - rho2[i]) ** 2
+                std_diff[i] = np.sqrt(max(var, 0.0))
+                dense[i] = st[i, 5] / n
+                dilute[i] = st[i, 6] / n
+        out["rho1"] = rho1
+        out["rho2"] = rho2
+        out["std_diff"] = std_diff
+        out["dense"] = dense
+        out["dilute"] = dilute
+        out["n_samples"] = ns.astype(np.int64)
+    return out

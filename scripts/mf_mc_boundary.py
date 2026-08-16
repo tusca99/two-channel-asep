@@ -14,7 +14,7 @@ is a finite-size effect or a genuine MF failure.
 import numpy as np
 import matplotlib.pyplot as plt
 
-from asep.parallel import make_tasks, scan_points
+from asep.parallel import make_tasks, scan_points, scan_points_gpu
 
 
 def beta_mc_mft(alpha):
@@ -34,6 +34,28 @@ def locate_boundary_density(betas, rho_avg, rho_star=0.40):
     return None
 
 
+def _scan(tasks, n_reps=1, use_gpu=True):
+    """CPU scan_points or GPU scan_points_gpu depending on availability.
+
+    Returns a per-point averaged list (one element per task), averaging across
+    the n_reps replicas that scan_points_gpu emits per task.
+    """
+    if use_gpu:
+        from asep.parallel import _cuda_available
+        if _cuda_available():
+            res = scan_points_gpu(tasks, n_reps=n_reps, seed=0)
+            nb = len(tasks)
+            out = []
+            for j in range(nb):
+                vals = res[j * n_reps:(j + 1) * n_reps]
+                out.append((np.mean([v[0] for v in vals]),
+                            np.mean([v[1] for v in vals]),
+                            np.mean([v[2] for v in vals]),
+                            np.mean([v[3] for v in vals])))
+            return out
+    return scan_points(tasks)
+
+
 def main():
     alphas = np.array([0.8, 0.9, 1.0])
     Ls = np.array([200, 400, 800])
@@ -41,6 +63,7 @@ def main():
     n_steps = 1_000_000
     warmup = 100_000
     sample_every = 400
+    n_reps = 4
 
     # (a) density and current curves for one alpha, several L
     alpha = 0.9
@@ -51,7 +74,7 @@ def main():
     ax = axes[0]
     for L in Ls:
         tasks = make_tasks([alpha], betas, L, n_steps, warmup, sample_every)
-        res = scan_points(tasks)
+        res = _scan(tasks, n_reps=n_reps)
         Jtot = np.array([r[0] + r[1] for r in res])
         ax.plot(betas, Jtot, "o-", ms=4, label=rf"L={L}")
     ax.axvline(mft_beta, color="k", ls="--", lw=1.2, label="MFT boundary")
@@ -61,7 +84,7 @@ def main():
     ax = axes[1]
     for L in Ls:
         tasks = make_tasks([alpha], betas, L, n_steps, warmup, sample_every)
-        res = scan_points(tasks)
+        res = _scan(tasks, n_reps=n_reps)
         rho = np.array([(r[2] + r[3]) / 2 for r in res])
         ax.plot(betas, rho, "o-", ms=4, label=rf"L={L}")
     ax.axvline(mft_beta, color="k", ls="--", lw=1.2, label="MFT boundary")
@@ -76,7 +99,7 @@ def main():
         mc_betas = []
         for L in Ls:
             tasks = make_tasks([alpha], betas, L, n_steps, warmup, sample_every)
-            res = scan_points(tasks)
+            res = _scan(tasks, n_reps=n_reps)
             rho = np.array([(r[2] + r[3]) / 2 for r in res])
             mc = locate_boundary_density(betas, rho)
             mc_betas.append(mc)

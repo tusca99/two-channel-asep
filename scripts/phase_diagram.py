@@ -65,16 +65,26 @@ def plot_mft_boundaries(ax):
 
 # --- Monte Carlo scan ----------------------------------------------------
 
-def scan_phase_diagram(alphas, betas, L, n_steps, warmup, sample_every, seed=0):
+def scan_phase_diagram(alphas, betas, L, n_steps, warmup, sample_every, seed=0,
+                       use_gpu=True, n_reps=1):
     """
-    Classify the phase at each (alpha, beta) grid point via MC (parallel).
+    Classify the phase at each (alpha, beta) grid point via MC.
 
     Uses the density-distribution method: collects joint (rho1, rho2) samples
     and detects symmetry breaking via std(rho1-rho2), which is robust to the
     state-flipping that washes out the time-averaged |rho1-rho2| at large L.
 
+    With use_gpu=True each grid point is replicated n_reps times and all
+    replicas run in a single GPU launch (~3x faster than CPU cores).
+    Falls back to the CPU parallel scan if CUDA is unavailable.
+
     Returns a 2D array of phase labels (strings).
     """
+    if use_gpu:
+        from asep.parallel import _cuda_available, scan_phase_diagram_gpu
+        if _cuda_available():
+            return scan_phase_diagram_gpu(alphas, betas, L, n_steps, warmup,
+                                          sample_every, n_reps=n_reps, seed=seed)
     from asep.parallel import make_tasks, scan_points_samples
     tasks = make_tasks(alphas, betas, L, n_steps, warmup, sample_every, seed)
     res = scan_points_samples(tasks, desc="phase grid")
@@ -116,26 +126,35 @@ def add_phase_legend(ax):
 
 
 def main():
+    import os
     L = 1000
     n_steps = 2_000_000
     warmup = 200_000
     sample_every = 400
+    n_reps = 16
+    OUT = "results/fig2"
+    os.makedirs(OUT, exist_ok=True)
 
     # (a) full parameter space: coarse grid
     alphas = np.linspace(0.05, 0.95, 31)
     betas = np.linspace(0.05, 0.95, 31)
-    grid = scan_phase_diagram(alphas, betas, L, n_steps, warmup, sample_every)
+    grid = scan_phase_diagram(alphas, betas, L, n_steps, warmup, sample_every,
+                              n_reps=n_reps)
+    np.save(f"{OUT}/grid_full.npy", grid, allow_pickle=True)
+    np.save(f"{OUT}/alphas_full.npy", alphas)
+    np.save(f"{OUT}/betas_full.npy", betas)
 
     # (b) zoom on 0.2 < beta < 0.4: finer grid to resolve the thin LD/LD band
     zoom_alphas = np.linspace(0.05, 0.95, 31)
     zoom_betas = np.linspace(0.2, 0.4, 21)
     zoom_grid = scan_phase_diagram(zoom_alphas, zoom_betas, L, n_steps, warmup,
-                                   sample_every, seed=1)
+                                   sample_every, seed=1, n_reps=n_reps)
+    np.save(f"{OUT}/grid_zoom.npy", zoom_grid, allow_pickle=True)
+    np.save(f"{OUT}/alphas_zoom.npy", zoom_alphas)
+    np.save(f"{OUT}/betas_zoom.npy", zoom_betas)
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-
-    # (a) full parameter space
-    ax = axes[0]
+    # (a) full parameter space - square
+    fig, ax = plt.subplots(figsize=(5, 5))
     plot_mft_boundaries(ax)
     plot_mc_grid(ax, alphas, betas, grid)
     ax.set_xlabel(r"$\alpha$")
@@ -144,9 +163,12 @@ def main():
     ax.set_ylim(0, 1)
     add_phase_legend(ax)
     ax.set_title("(a) Full parameter space")
+    fig.tight_layout()
+    fig.savefig(f"{OUT}/phase_diagram_full.png", dpi=150)
+    plt.close(fig)
 
-    # (b) zoom on 0.2 < beta < 0.4 (as in paper Fig 2b), finer grid
-    ax = axes[1]
+    # (b) zoom on 0.2 < beta < 0.4 - square
+    fig, ax = plt.subplots(figsize=(5, 5))
     plot_mft_boundaries(ax)
     plot_mc_grid(ax, zoom_alphas, zoom_betas, zoom_grid)
     ax.set_xlabel(r"$\alpha$")
@@ -154,12 +176,12 @@ def main():
     ax.set_xlim(0, 1)
     ax.set_ylim(0.2, 0.4)
     add_phase_legend(ax)
-    ax.set_title(r"(b) Zoom: $0.2<\beta<0.4$ (finer grid)")
-
-    fig.suptitle("Two-channel ASEP phase diagram (MFT lines + MC points)")
+    ax.set_title(r"(b) Zoom: $0.2<\beta<0.4$")
     fig.tight_layout()
-    fig.savefig("results/phase_diagram.png", dpi=150)
-    plt.show()
+    fig.savefig(f"{OUT}/phase_diagram_zoom.png", dpi=150)
+    plt.close(fig)
+
+    print(f"Figures and data saved in {OUT}/")
 
 
 if __name__ == "__main__":
