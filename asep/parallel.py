@@ -97,7 +97,7 @@ def scan_grid_gpu(alphas, betas, L, n_steps, warmup, sample_every, n_reps=1,
 
     na, nb = len(alphas), len(betas)
     n_points = na * nb
-    nrep = n_points * n_reps
+    nrep = int(n_points * n_reps)
 
     # per-replica (alpha, beta): point-major so results are easy to reshape
     aa = np.repeat(np.array([a for a in alphas for b in betas]), n_reps)
@@ -232,13 +232,13 @@ def scan_points_gpu(tasks, n_reps=1, seed=0, chunk=2048, desc="gpu scan",
         t = groups[key][0]
         alpha, beta, L, n_steps, warmup, sample_every = key
         n_pts = len(groups[key])
-        nrep = n_pts * n_reps
+        nrep = int(n_pts * n_reps)
         aa = np.repeat(np.array([g[0] for g in groups[key]]), n_reps)
         bb = np.repeat(np.array([g[1] for g in groups[key]]), n_reps)
 
         out = run_ensemble_cuda(
-            0.0, 0.0, L, n_steps, nrep, seed=seed, block=256,
-            sample_every=sample_every, warmup=warmup,
+            0.0, 0.0, int(L), int(n_steps), nrep, seed=int(seed), block=256,
+            sample_every=int(sample_every), warmup=int(warmup),
             alphas=aa, betas=bb,
         )
         m = out["ttime"] > 0
