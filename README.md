@@ -59,16 +59,47 @@ J1, J2 = sim.get_currents()
 rho1, rho2 = sim.get_bulk_densities()
 ```
 
+## Reproduction workflow (GPU ensemble)
+
+The figures are produced by **one GPU ensemble scan** followed by **offline
+plotting** from the saved data — MC is never re-run at plot time.
+
+```bash
+# 1. Run the full GPU scan (slow; needs a CUDA GPU, e.g. RTX 2060 SUPER).
+#    Saves raw data to results/gpu/*.npz
+python scripts/run_all_gpu.py
+
+# 2. Plot every figure from the saved data (fast, no MC).
+python scripts/plot_all.py
+```
+
+What `run_all_gpu.py` produces (each is one ensemble launch on the GPU —
+one thread per (α, β, replica), ~85 Msteps/s on a 2060 SUPER):
+
+| Figure | Data        | What it shows |
+|--------|-------------|---------------|
+| fig2   | `fig2/`     | Phase diagram (full + zoom) |
+| fig3   | `fig3_points.npz` | P(ρ1,ρ2) snapshots + 2D/3D animations |
+| fig6   | `fig6/alpha*.npz` | Currents & densities vs β |
+| ssb    | `ssb_beta*.npz` | SSB order parameter vs β (long runs) |
+
+`scripts/fig3_plot.py` is the plotting module for fig3 (used by `plot_all`).
+
+> **SSB / long runs:** at L=1000 a short run stays in one broken-symmetry
+> state, so time-averaged |ρ1−ρ2| looks symmetric. The robust signature is
+> std(ρ1−ρ2) or the bimodal P(ρ1,ρ2) over an ensemble. Our long-run β-scan
+> shows diff/std decreasing monotonically with β (0.069/0.091 at β=0.05 →
+> 0.029/0.021 at β=0.30) — see `presentation/notes_ssb_discrepancy.md`.
+
 ## Project Structure
 
 ```
 .
 ├── theory/        # Paper notes, MFT derivations
-├── asep/          # Core simulation code
-├── analyze/       # Phase diagram scans, finite-size scaling
-├── notebooks/     # Reproduction notebooks (Fig 2, Fig 6)
-├── presentation/  # Beamer slides
-└── results/       # Raw simulation data (gitignored)
+├── asep/          # Core simulation code (model, bkl, cuda_ensemble, parallel)
+├── scripts/       # run_all_gpu.py (scan) + plot_all.py (figures)
+├── presentation/  # Slides + SSB-discrepancy notes
+└── results/       # Raw data + figures (gitignored)
 ```
 
 ## License
