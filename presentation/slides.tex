@@ -6,174 +6,719 @@
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{booktabs}
-\graphicspath{{../results/gpu/}}
+\usepackage{multimedia}
+\usepackage{color}
+\usepackage{tikz}
+\graphicspath{{../results/gpu/}{../diagrams/}}
 
-\title{Two-Channel ASEP with Narrow Entrances}
-\subtitle{Reproduction of Pronina \& Kolomeisky (2007) + GPU acceleration}
+\title[Two-Channel ASEP]{Spontaneous symmetry breaking in two-channel\\ asymmetric exclusion processes with narrow entrances}
+\subtitle{Reproduction of Pronina \& Kolomeisky, J. Phys. A 40, 2275 (2007)}
 \author{Your Name}
+\institute{Department of Physics}
 \date{\today}
 
 \begin{document}
 
 \begin{frame}
   \titlepage
+  \note{1 hour talk. Theory-heavy first half (~25 min), results second half.}
 \end{frame}
 
 \begin{frame}{Outline}
   \tableofcontents
 \end{frame}
 
-\section{Model \& Reproduction}
-\begin{frame}{The Model}
-  Two parallel channels, hard-core exclusion:
+%% =====================================================================
+\section{Motivation}
+\begin{frame}{Why study exclusion processes?}
   \begin{itemize}
-    \item Channel 1: hop right (rate 1)
-    \item Channel 2: hop left (rate 1)
-    \item \textbf{Narrow-entrance coupling}: enter channel 1 only if exit site
-      of channel 2 is empty (and vice versa)
-    \item Exit rate $\beta$ independent of other channel
+    \item Asymmetric Simple Exclusion Process (TASEP) is the reference model
+      of \emph{non-equilibrium} transport --- the role of the Ising model for
+      equilibrium statistical mechanics.
+    \item Minimal description of interacting particles on a 1D lattice with
+      hard-core exclusion.
+    \item Applications: motor proteins on cytoskeletal filaments
+      (kinesin/dynein), ribosome motion in mRNA translation, car traffic,
+      nanopore transport.
   \end{itemize}
-  \vspace{0.3em}
-  \centering
-  Reproduced exactly: phase diagram, currents, densities, and $P(\rho_1,\rho_2)$.
+  \vspace{0.5em}
+  \begin{block}{Motivation for two channels}
+    In cells, kinesin and dynein walk \emph{in opposite directions} on the
+    same microtubule. Two lanes of particles moving in opposite directions,
+    coupled at the boundaries --- can they \emph{break symmetry}
+    spontaneously?.
+  \end{block}
 \end{frame}
 
-\begin{frame}{Phase Diagram (Fig 2)}
+\begin{frame}{The paper's question}
+  Two identical lanes, identical dynamics, identical injection.
+  \vspace{0.5em}
+  \begin{center}
+    \begin{tikzpicture}[
+      x=0.9cm, y=0.82cm,
+      site/.style={draw=black!55, minimum width=0.68cm, minimum height=0.55cm,
+                   inner sep=0, font=\footnotesize},
+      ent/.style={draw=green!55!black, fill=green!12, minimum width=0.68cm,
+                  minimum height=0.55cm, inner sep=0, font=\footnotesize,
+                  text=green!35!black},
+      exi/.style={draw=red!60, fill=red!10, minimum width=0.68cm,
+                  minimum height=0.55cm, inner sep=0, font=\footnotesize,
+                  text=red!60!black}
+    ]
+      % Channel 1 (top, ->): enter left, exit right
+      \node[ent] (c1in)  at (0, 1.0) {$\alpha$};
+      \node[site] (c1s1) at (1.1, 1.0) {1};
+      \node[site] (c1s2) at (1.85, 1.0) {2};
+      \node[site] (c1s3) at (2.6, 1.0) {3};
+      \node at (3.3, 1.0) {\footnotesize $\cdots$};
+      \node[site] (c1l1) at (4.0, 1.0) {$L{-}1$};
+      \node[site] (c1l)  at (4.75, 1.0) {$L$};
+      \node[exi] (c1out) at (6.0, 1.0) {$\beta$};
+      \draw[blue, very thick, ->] (0.3, 1.62) -- (5.6, 1.62);
+      \node[blue, anchor=west, font=\small] at (5.7, 1.62) {channel 1};
+
+      % Channel 2 (bottom, <-): enter right, exit left
+      \node[exi] (c2out) at (0, -1.0) {$\beta$};
+      \node[site] (c2s1) at (1.1, -1.0) {1};
+      \node[site] (c2s2) at (1.85, -1.0) {2};
+      \node[site] (c2s3) at (2.6, -1.0) {3};
+      \node at (3.3, -1.0) {\footnotesize $\cdots$};
+      \node[site] (c2l1) at (4.0, -1.0) {$L{-}1$};
+      \node[site] (c2l)  at (4.75, -1.0) {$L$};
+      \node[ent] (c2in)  at (6.0, -1.0) {$\alpha$};
+      \draw[orange!80!black, very thick, ->] (5.6, -1.62) -- (0.3, -1.62);
+      \node[orange!80!black, anchor=west, font=\small] at (5.7, -1.62) {channel 2};
+
+      % Narrow-entrance coupling
+      \draw[dashed, green!50!black, thick] (c1in.south) -- (c2out.north);
+      \draw[dashed, green!50!black, thick] (c1out.south) -- (c2in.north);
+      \node[text=green!35!black, font=\scriptsize, align=center] at (0, -2.45)
+        {narrow entrance: enter 1 only if\\ exit site of channel 2 is empty};
+      \node[text=green!35!black, font=\scriptsize, align=center] at (6.0, -2.45)
+        {narrow entrance: enter 2 only if\\ exit site of channel 1 is empty};
+      \node[gray, font=\scriptsize] at (2.6, 0.42) {bulk hop: rate 1, only if next site empty};
+    \end{tikzpicture}
+  \end{center}
+  \vspace{0.5em}
+  \begin{block}{Surprising result}
+    Despite exact symmetry of the rules, the steady state can be
+    \textbf{asymmetric}: one lane dense, the other dilute.
+  \end{block}
+\end{frame}
+
+%% =====================================================================
+\section{The Model}
+\begin{frame}{The model: two-channel ASEP with narrow entrances}
+  \begin{center}
+    \movie[autostart,loop,width=0.82\textwidth]{\includegraphics[width=0.82\textwidth]{poster_lattice.png}}{lattice_animation.mp4}
+  \end{center}
+  \vspace{-0.5em}
+  \begin{itemize}
+    \item Channel 1: particles enter at the left, hop right (rate 1), exit right.
+    \item Channel 2: particles enter at the right, hop left (rate 1), exit left.
+    \item Hard-core exclusion: at most one particle per site.
+  \end{itemize}
+  \note{1 frame = 1 event (Gillespie). Waiting dots show the narrow-entrance
+    blockage: an entrance is blocked while the OTHER lane's exit site is occupied.}
+\end{frame}
+
+\begin{frame}{The narrow-entrance rule}
+  \begin{itemize}
+    \item Particle enters channel 1 (rate $\alpha$) iff site 1 of channel 1 is
+      \emph{empty} \textbf{and} the \emph{exit site of channel 2} is empty.
+    \item Particle enters channel 2 (rate $\alpha$) iff site L of channel 2 is
+      \emph{empty} \textbf{and} the \emph{exit site of channel 1} is empty.
+    \item Bulk hops: rate 1 to the next site, only if empty.
+    \item Exits: rate $\beta$, \emph{independent} of the other channel.
+  \end{itemize}
+  \vspace{0.5em}
+  \begin{block}{The coupling}
+    Each channel's \emph{entrance} is coupled to the other channel's
+    \emph{exit}. This is the ``narrow entrance'' (a bottleneck shared by both
+    lanes at each end).
+  \end{block}
+\end{frame}
+
+\begin{frame}{What we want to compute}
+  Steady-state properties as a function of $(\alpha, \beta)$:
+  \begin{itemize}
+    \item Phase diagram in the $(\alpha, \beta)$ plane.
+    \item Bulk densities $\rho_1, \rho_2$ and currents $J_1, J_2$.
+    \item The joint density distribution $P(\rho_1, \rho_2)$ --- the diagnostic
+      for spontaneous symmetry breaking (SSB).
+  \end{itemize}
+  \vspace{0.5em}
+  Approach: mean-field theory (solves the model analytically), then Monte Carlo
+  (checks the theory).
+\end{frame}
+
+%% =====================================================================
+\section{Single-lane TASEP (recap)}
+\begin{frame}{Recap: single-lane TASEP}
+  One channel, particles enter with rate $\alpha$, hop right with rate 1,
+  exit with rate $\beta$.
+  \vspace{0.3em}
+  \begin{block}{Mean-field approximation}
+    Assume no correlations between sites (eq 1 of the paper):
+    \[
+      \langle p_i p_j \rangle = \langle p_i \rangle\langle p_j \rangle
+      = p_i p_j .
+    \]
+  \end{block}
+  The current across bond $i \to i{+}1$ is then
+  \[
+    J = \langle p_i (1 - p_{i+1})\rangle = \rho(1-\rho), \qquad \rho = \langle p_i\rangle .
+  \]
+  Three stationary phases depending on which boundary is rate-limiting.
+\end{frame}
+
+\begin{frame}{Single-lane phases and phase diagram}
+  \small
   \begin{columns}
     \column{0.5\textwidth}
-    \includegraphics[width=\textwidth]{fig2/phase_diagram_full.png}
+      \centering
+      \includegraphics[width=0.95\textwidth]{figures/tasep_phases.png}
     \column{0.5\textwidth}
-    \includegraphics[width=\textwidth]{fig2/phase_diagram_zoom.png}
+      \footnotesize
+      \begin{tabular}{lll}
+        \toprule
+        Phase & condition & $J$, $\rho$ \\
+        \midrule
+        LD & $\alpha<\beta$, $\alpha<1/2$ & $J{=}\alpha(1{-}\alpha)$, $\rho{=}\alpha$ \\
+        HD & $\beta<\alpha$, $\beta<1/2$ & $J{=}\beta(1{-}\beta)$, $\rho{=}1{-}\beta$ \\
+        MC & $\alpha>1/2$, $\beta>1/2$ & $J{=}1/4$, $\rho{=}1/2$ \\
+        \bottomrule
+      \end{tabular}
+
+      \vspace{0.5em}
+      For a single lane, \textbf{mean-field is exact} (matrix ansatz).
   \end{columns}
-  MFT boundaries (eqs 10/13/23/33) match the paper's mean-field lines.
 \end{frame}
 
-\section{MFT vs MC (professor's focus)}
-\begin{frame}{MFT transition positions are NOT exact}
-  \begin{itemize}
-    \item Unlike single-lane TASEP (exact at $\alpha=\beta=1/2$), here MFT
-      deviates from MC.
-    \item MC LD/MC boundary sits at \textbf{higher} $\beta$ than MFT.
-    \item Deviation grows with $\alpha$: $+0.01$ at $\alpha=0.8 \rightarrow
-      +0.075$ at $\alpha=1.0$.
-    \item Cause: MFT neglects correlations; narrow-entrance coupling creates
-      boundary correlations (an effective boundary impurity) MFT misses.
-  \end{itemize}
+\begin{frame}{Single-lane currents}
   \centering
-  \includegraphics[width=0.45\textwidth]{mf_mc_ldmc_boundary.png}
-\end{frame}
-
-\section{Spontaneous Symmetry Breaking}
-\begin{frame}{SSB: order parameter}
-  Two asymmetric phases: HD/LD (first order), LD/LD (continuous).
-  Robust order parameter is $\mathrm{std}(\rho_1-\rho_2)$ over an ensemble
-  (the time-averaged $|\rho_1-\rho_2|$ is washed out by state flipping).
+  \includegraphics[width=0.8\textwidth]{figures/tasep_current.png}
   \vspace{0.3em}
-  \centering
-  \includegraphics[width=0.6\textwidth]{ssb_order_vs_beta.png}
-
-  Long-run $\beta$-scan at $L=1000$: diff/std decrease monotonically with
-  $\beta$ ($0.069/0.091$ at $\beta=0.05 \rightarrow 0.029/0.021$ at $\beta=0.30$).
+  \begin{itemize}
+    \item At $\alpha > 1/2$, increasing $\beta$ drives LD $\to$ MC through the
+      maximal-current value $J=1/4$.
+    \item The current saturates: the bulk becomes the rate-limiting step.
+  \end{itemize}
 \end{frame}
 
-\begin{frame}{Finite-size effect (L small vs large)}
+%% =====================================================================
+\section{Mean-field theory for the two-channel model}
+\begin{frame}{Strategy: two single-lane TASEPs with effective rates}
+  \small
+  The two-channel model is two single-lane TASEPs (with exit rate $\beta$),
+  coupled \emph{only through the entrances} (eq 2 of the paper):
+  \begin{block}{Effective entrance rates}
+    \begin{align}
+      \alpha_1 &= \alpha\,\langle 1 - m_1\rangle = \alpha (1 - m_1), \\
+      \alpha_2 &= \alpha\,\langle 1 - p_L\rangle = \alpha (1 - p_L),
+    \end{align}
+    where $m_1$ = density at site 1 of channel 2 (its exit),
+    $p_L$ = density at site $L$ of channel 1 (its exit).
+  \end{block}
+  Each channel is then a standard TASEP with rates $(\alpha_1, \beta)$ and
+  $(\alpha_2, \beta)$ --- whose steady states we already know.
+  \pause
+  \begin{block}{Nine candidate phases}
+    $3 \times 3$ combinations (LD/HD/MC per channel) $\to$ filter by
+    self-consistency of $\alpha_1, \alpha_2$.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Symmetric phases: set-up}
+  \small
+  \begin{block}{Symmetric ansatz (eq 6-7)}
+    \[
+      J_1 = J_2, \quad \rho_1 = \rho_2, \quad \alpha_1 = \alpha_2, \qquad
+      p_i = m_{L-i+1}.
+    \]
+  \end{block}
+  \begin{itemize}
+    \item Both channels in the same single-lane phase.
+    \item Symmetry + the exit current relation determine the effective rates
+      \emph{self-consistently}.
+    \item Key relation (exit current of channel 2, eq 8/11):
+      \[
+        J_2 = \beta\, m_1 .
+      \]
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Symmetric MC phase (eqs 8--10)}
+  \scriptsize
+  \pause
+  \textbf{Step 1: current fixes $m_1$ (eq 8).}
+  In MC, $J_1 = J_2 = 1/4$; the exit current of channel 2 gives
+  \[
+    J_2 = \beta m_1 = \frac14 \quad\Rightarrow\quad m_1 = \frac{1}{4\beta}.
+  \]
+  \pause
+  \textbf{Step 2: effective entrance rate (eq 9).}
+  \[
+    \alpha_1 = \alpha(1 - m_1) = \alpha\left(1 - \frac{1}{4\beta}\right).
+  \]
+  \pause
+  \textbf{Step 3: existence condition (eq 10).}
+  MC needs $\alpha_1 > 1/2$ and $\beta > 1/2$:
+  \[
+    \alpha\left(1 - \frac{1}{4\beta}\right) > \frac12
+    \quad\Longrightarrow\quad
+    \alpha > \frac{2\beta}{4\beta - 1}
+  \]
+\end{frame}
+
+\begin{frame}{Symmetric LD phase (eqs 11--13)}
+  \scriptsize
+  \pause
+  \textbf{Step 1: current fixes $m_1$ (eq 11).}
+  In LD, $J_1 = J_2 = \alpha_1(1-\alpha_1)$; exit current of channel 2:
+  \[
+    J_2 = \beta m_1 = \alpha_1(1-\alpha_1)
+    \quad\Rightarrow\quad
+    m_1 = \frac{\alpha_1(1-\alpha_1)}{\beta}.
+  \]
+  \pause
+  \textbf{Step 2: self-consistency for $\alpha_1$ (eq 2).}
+  \[
+    \alpha_1 = \alpha(1 - m_1)
+    = \alpha\left(1 - \frac{\alpha_1(1-\alpha_1)}{\beta}\right).
+  \]
+  A quadratic in $\alpha_1$; physical root (eq 12):
+  \[
+    \alpha_1 = \frac{\alpha + \beta - \sqrt{(\alpha+\beta)^2 - 4\alpha^2\beta}}{2\alpha}.
+  \]
+  \pause
+  \textbf{Step 3: existence condition (eq 13).}
+  LD needs $\alpha_1 < 1/2$ and $\alpha_1 < \beta$:
+  \[
+    \alpha < \frac{2\beta}{4\beta - 1}
+  \]
+\end{frame}
+
+\begin{frame}{Symmetric HD phase: does not exist}
+  \pause
+  \begin{itemize}
+    \item In HD, $J_1 = J_2 = \beta(1-\beta)$. From $J_2 = \beta m_1$:
+      \[
+        m_1 = 1 - \beta.
+      \]
+    \pause
+    \item Effective entrance rate:
+      \[
+        \alpha_1 = \alpha(1 - m_1) = \alpha\beta.
+      \]
+    \pause
+    \item HD requires $\alpha_1 > \beta$, i.e.\ $\alpha\beta > \beta$, i.e.\
+      $\alpha > 1$. But $\alpha \le 1$ by definition.
+  \end{itemize}
+  \pause
+  \begin{block}{Conclusion}
+    \textbf{Symmetric HD phase is impossible} in the two-channel model with
+    narrow entrances. Only MC and LD survive as symmetric phases.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Asymmetric phases: MC/HD and MC/LD don't exist}
+  \small
+  \pause
+  \begin{itemize}
+    \item \textbf{MC/HD} (eq 15): requires simultaneously $\beta>1/2$
+      (for MC) and $\beta<1/2$ (for HD) --- contradictory.
+    \pause
+    \item \textbf{MC/LD} (eqs 16--19): MC needs $\alpha_1 > 1/2$, LD needs
+      $\alpha_2 < 1/2$. Using $J_1 = \beta p_L = 1/4$ and
+      $J_2 = \beta m_1 = \alpha_2(1-\alpha_2)$ leads to a condition (eq 19)
+      that cannot hold for $0 < \alpha \le 1$, $0 < \beta \le 1$.
+  \end{itemize}
+  \pause
+  \begin{block}{Conclusion}
+    An asymmetric phase must pair \textbf{one channel in LD} with the other in
+    a different phase: the candidate is HD/LD.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Asymmetric HD/LD phase (eqs 20--23)}
+  \scriptsize
+  \pause
+  \textbf{Conditions (eq 20).}
+  Channel 1 in HD: $\alpha_1 > \beta$, $\beta < 1/2$;\quad
+  Channel 2 in LD: $\alpha_2 < \beta$, $\alpha_2 < 1/2$.
+  \pause
+  \textbf{Step 1: currents (eq 21).}
+  \[
+    J_1 = \beta p_L = \beta(1-\beta)
+    \quad\Rightarrow\quad p_L = 1 - \beta,
+    \qquad
+    J_2 = \beta m_1 = \alpha_2(1-\alpha_2).
+  \]
+  \pause
+  \textbf{Step 2: effective rates (eq 22).}
+  \[
+    \alpha_2 = \alpha(1 - p_L) = \alpha\beta, \qquad
+    \alpha_1 = \alpha(1 - m_1) = \alpha(1 - \alpha + \alpha^2\beta).
+  \]
+  \pause
+  \textbf{Step 3: existence (eq 23).}
+  HD condition $\alpha_1 > \beta$:
+  \[
+    \alpha(1 - \alpha + \alpha^2\beta) > \beta
+    \quad\Longrightarrow\quad
+    \beta < \frac{\alpha}{1 + \alpha + \alpha^2}
+  \]
+\end{frame}
+
+\begin{frame}{Asymmetric LD/LD phase: set-up (eqs 24--26)}
+  \small
+  \pause
+  Both channels in LD, but with \emph{different} densities and currents.
+  \begin{block}{Conditions (eq 24)}
+    $\alpha_1 < \beta$, $\alpha_1 < 1/2$ and $\alpha_2 < \beta$, $\alpha_2 < 1/2$.
+  \end{block}
+  \pause
+  \begin{block}{Currents and effective rates (eqs 25--26)}
+    \[
+      J_1 = \beta p_L = \alpha_1(1-\alpha_1), \qquad
+      J_2 = \beta m_1 = \alpha_2(1-\alpha_2),
+    \]
+    \[
+      p_L = \frac{\alpha_1(1-\alpha_1)}{\beta}, \qquad
+      m_1 = \frac{\alpha_2(1-\alpha_2)}{\beta},
+    \]
+    \[
+      \alpha_1 = \alpha\left(1 - \frac{\alpha_2(1-\alpha_2)}{\beta}\right), \qquad
+      \alpha_2 = \alpha\left(1 - \frac{\alpha_1(1-\alpha_1)}{\beta}\right).
+    \]
+  \end{block}
+  \pause
+  Two coupled quadratics in $\alpha_1, \alpha_2$. Simplify with symmetric and
+  antisymmetric combinations (eq 27):
+  \[
+    S = \alpha_1 + \alpha_2, \qquad D = \alpha_1 - \alpha_2 \neq 0.
+  \]
+\end{frame}
+
+\begin{frame}{Asymmetric LD/LD phase: solve (eqs 27--31)}
+  \scriptsize
+  \pause
+  \textbf{Step 1: difference of the two equations (eq 28).}
+  \[
+    D = \frac{\alpha}{\beta}\left(\alpha_1 - \alpha_1^2 - \alpha_2 + \alpha_2^2\right)
+    = \frac{\alpha}{\beta} D (1 - S).
+  \]
+  Since $D \neq 0$ (asymmetric phase), we get
+  \[
+    S = 1 - \frac{\beta}{\alpha} \qquad \text{(eq 29)}
+  \]
+  \pause
+  \textbf{Step 2: sum of the two equations (eq 30).}
+  \[
+    S = 2\alpha - \frac{\alpha}{\beta}\left[S - \frac{S^2 + D^2}{2}\right]
+    \qquad\text{(using $\alpha_1^2 + \alpha_2^2 = (S^2+D^2)/2$).}
+  \]
+  \pause
+  \textbf{Step 3: substitute $S = 1 - \beta/\alpha$ (eq 31).}
+  \[
+    D^2 = 1 - 4\beta + 2\frac{\beta}{\alpha} - 3\left(\frac{\beta}{\alpha}\right)^2
+  \]
+\end{frame}
+
+\begin{frame}{Asymmetric LD/LD phase: effective rates (eq 32)}
+  \scriptsize
+  From $S$ and $D$ we reconstruct the two effective entrance rates:
+  \[
+    \alpha_1 = \frac{S + D}{2}, \qquad \alpha_2 = \frac{S - D}{2}.
+  \]
+  \pause
+  \begin{align*}
+    \alpha_1 &= \frac{1}{2}\left[1 - \frac{\beta}{\alpha} + \sqrt{1 - 4\beta + 2\frac{\beta}{\alpha} - 3\left(\frac{\beta}{\alpha}\right)^2}\right], \\[0.4em]
+    \alpha_2 &= \frac{1}{2}\left[1 - \frac{\beta}{\alpha} - \sqrt{1 - 4\beta + 2\frac{\beta}{\alpha} - 3\left(\frac{\beta}{\alpha}\right)^2}\right].
+  \end{align*}
+  \pause
+  \begin{block}{Existence (eq 33)}
+    Real roots need $D^2 > 0$; together with the LD conditions (eq 24):
+    \[
+      \frac{\alpha}{1 + \alpha + \alpha^2} < \beta <
+        \frac{\alpha(1-2\alpha) + 2\alpha\sqrt{\alpha^2 - \alpha + 1}}{3}
+    \]
+  \end{block}
+\end{frame}
+
+\begin{frame}{Mean-field phase diagram (summary)}
   \begin{columns}
     \column{0.5\textwidth}
-    \centering
-    \includegraphics[width=0.9\textwidth]{ssb_finite_size.png}\\
-    SSB order parameter vs $L$
+      \centering
+      \includegraphics[width=0.95\textwidth]{fig2/phase_diagram_full.png}
     \column{0.5\textwidth}
-    \centering
-    At $L=200$: strong, immediate HD/LD (dense~0.9, dilute~0.04).
-    At $L=1000$: broken states flip; the time-average washes out unless runs
-    are long. The instantaneous separation persists.
+      \small
+      \begin{tabular}{ll}
+        \toprule
+        Phase & MFT boundary \\
+        \midrule
+        MC & $\alpha > \dfrac{2\beta}{4\beta-1}$ (eq 10) \\
+        LD & $\alpha < \dfrac{2\beta}{4\beta-1}$ (eq 13) \\
+        HD & never (needs $\alpha>1$) \\
+        HD/LD & $\beta < \dfrac{\alpha}{1+\alpha+\alpha^2}$ (eq 23) \\
+        LD/LD & eq 33 (narrow band) \\
+        \bottomrule
+      \end{tabular}
+
+      \vspace{0.5em}
+      Transitions: LD$\leftrightarrow$MC and LD$\leftrightarrow$LD/LD are
+      \emph{continuous}; HD/LD$\leftrightarrow$LD/LD is \emph{first order}.
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Take stock: what mean-field predicts}
+  \begin{enumerate}
+    \item Two symmetric phases (LD, MC) --- HD impossible.
+    \item Two symmetry-broken phases: HD/LD (first order) and LD/LD
+      (continuous), in a \emph{very narrow} band of $\beta$.
+    \item The phase diagram is fully determined by self-consistency of the
+      effective entrance rates $\alpha_1, \alpha_2$.
+  \end{enumerate}
+  \pause
+  \begin{block}{The message to verify}
+    Mean-field predicts \emph{where} transitions happen. Are these positions
+    exact? For single-lane TASEP they are. Here, the boundary coupling may
+    introduce correlations mean-field misses.
+  \end{block}
+\end{frame}
+
+%% =====================================================================
+\section{Monte Carlo vs mean-field}
+\begin{frame}{Phase diagram: MC vs MFT}
+  \small
+  \begin{columns}
+    \column{0.5\textwidth}
+      \centering
+      \includegraphics[width=0.8\textwidth]{fig2/phase_diagram_full.png}
+    \column{0.5\textwidth}
+      \centering
+      \includegraphics[width=0.8\textwidth]{fig2/phase_diagram_zoom.png}
+  \end{columns}
+  \vspace{0.2em}
+  \begin{itemize}
+    \item Lines: mean-field; symbols: MC at $L=1000$ (reproduced).
+    \item Overall topology agrees; the quantitative position of boundaries
+      \textbf{deviates}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Transition positions: the paper's key message}
+  \begin{columns}
+    \column{0.55\textwidth}
+      \centering
+      \includegraphics[width=0.92\textwidth]{mf_mc_boundary_dev.png}
+    \column{0.45\textwidth}
+      \begin{itemize}
+        \item MFT predicts the LD/MC transition at
+          $\beta_{LD/MC} = \frac{\alpha}{4\alpha - 2}$ (eq 10).
+        \item MC locates it at a \textbf{different} $\beta$ --- the deviation
+          grows with $\alpha$ ($+0.01$ at $\alpha=0.8 \to +0.075$ at
+          $\alpha=1.0$).
+        \item Unlike single-lane TASEP, where MFT gives \emph{exact} phase
+          boundaries, here the transition positions are \emph{approximate}.
+      \end{itemize}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Currents and densities}
+  \begin{columns}
+    \column{0.33\textwidth}
+      \includegraphics[width=\textwidth]{fig6/currents_alpha0.1.png}\\
+      $\alpha=0.1$
+    \column{0.33\textwidth}
+      \includegraphics[width=\textwidth]{fig6/currents_alpha0.8.png}\\
+      $\alpha=0.8$
+    \column{0.33\textwidth}
+      \includegraphics[width=\textwidth]{fig6/densities_alpha0.9.png}\\
+      $\alpha=0.9$
+  \end{columns}
+  \begin{itemize}
+    \item Lines: mean-field; symbols: MC.
+    \item Good agreement at low $\alpha,\beta$; deviations grow with
+      $\alpha,\beta$.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Why does mean-field fail here?}
+  \begin{block}{The source of the discrepancy}
+    Mean-field assumes \emph{no correlations} between sites (eq 1). The
+    narrow-entrance coupling ties each entrance to the other channel's exit
+    site --- a strongly-correlated, local ``impurity'' at the boundary that
+    mean-field cannot capture.
+  \end{block}
+  \begin{itemize}
+    \item These boundary correlations \emph{propagate into the bulk} and shift
+      the effective phase boundaries.
+    \item The paper's own conclusion (Sec.~4): symmetry breaking in this model
+      is a \emph{boundary-induced} phenomenon --- an effective impurity at the
+      boundary.
+    \item Whether the MFT-vs-MC deviation persists in the thermodynamic limit
+      is still open (needs longer runs at $L=800$).
+  \end{itemize}
+\end{frame}
+
+%% =====================================================================
+\section{Spontaneous symmetry breaking}
+\begin{frame}{SSB: the robust order parameter}
+  \small
+  \begin{block}{Why a robust order parameter is needed}
+    Time-averaged $|\rho_1 - \rho_2|$ is \emph{washed out} because the broken
+    states flip between $(+, -)$ and $(-, +)$ on long time scales. Robust
+    choice: $\mathrm{std}(\rho_1 - \rho_2)$ over an ensemble of replicas.
+  \end{block}
+  \begin{columns}
+    \column{0.40\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{ssb_order_vs_beta.png}
+    \column{0.60\textwidth}
+      \pause
+      \begin{itemize}
+        \item Long-run scan at $L=1000$, $\alpha=0.9$: order parameter
+          decreases monotonically with $\beta$ ($0.09 \to 0.02$ from
+          $\beta{=}0.05$ to $0.30$).
+        \item SSB confined to \emph{low} $\beta$ in our MC (vs the paper's
+          $\beta\approx0.23$ at the same $L$).
+      \end{itemize}
   \end{columns}
 \end{frame}
 
 \begin{frame}{$P(\rho_1,\rho_2)$ from an ensemble (Fig 3)}
-  A single short run at $L=1000$ stays in ONE broken state (one peak). The
-  paper's TWO peaks are recovered by an \textbf{ensemble} of independent
-  replicas.
-  \vspace{0.3em}
+  \small
+  A single short run at $L=1000$ stays in \emph{one} broken state (one peak).
+  The paper's \emph{two} peaks are recovered by an ensemble of independent
+  replicas:
+  \vspace{0.2em}
   \centering
-  \includegraphics[width=0.75\textwidth]{fig3_joint_density_3d.png}
-
-  Animations (\href{../results/gpu/fig3_anim.mp4}{3D},
-  \href{../results/gpu/fig3_anim_2d.mp4}{2D}) sweep $\beta \in [0.02,1]$.
-\end{frame}
-
-\section{Computational Optimization}
-\begin{frame}{BKL: classic vs Fenwick}
+  \includegraphics[width=0.42\textwidth]{fig3_joint_density_3d.png}
+  \vspace{0.2em}
   \begin{itemize}
-    \item Classic BKL: selection via double loop over the active list, cost
-      $\propto n_{active}$.
-    \item Fenwick-tree BKL: selection in $O(\log L)$, total rate maintained
-      incrementally. \textbf{~4$\times$ faster, identical physics.}
+    \item Bimodal $P(\rho_1,\rho_2)$: two asymmetric HD/LD configurations.
+    \item Animations sweeping $\beta$: 3D
+      (\href{../results/gpu/fig3_anim.mp4}{mp4}) and 2D
+      (\href{../results/gpu/fig3_anim_2d.mp4}{mp4}).
   \end{itemize}
-  \begin{center}
-  \begin{tabular}{lc}
-    \toprule
-    Kernel & Msteps/s \\
-    \midrule
-    classic BKL & 1.2 \\
-    Fenwick BKL & 4.8 \\
-    \bottomrule
-  \end{tabular}
-  \end{center}
 \end{frame}
 
-\begin{frame}{GPU ensemble: the main strength}
-  The GPU maps the ASEP poorly as a single serial chain. The strength is an
-  \textbf{ensemble}: one CUDA thread per independent replica.
-  \[
-  \text{GPU: }\underbrace{\text{rep}_1\oplus\text{rep}_2\oplus\cdots\oplus\text{rep}_{N}}_{\text{one thread each}}
-  \]
-  \begin{center}
-  \begin{tabular}{lc}
-    \toprule
-    Backend & Msteps/s \\
-    \midrule
-    CPU, 1 thread & 4.4 \\
-    CPU, 12 cores & 29.6 \\
-    GPU ensemble (2060 SUPER) & $\sim$85 \\
-    \bottomrule
-  \end{tabular}
-  \end{center}
-  ~19$\times$ single-thread CPU, ~2.9$\times$ 12-core CPU.
+\begin{frame}{Finite-size effects}
+  \small
+  \begin{columns}
+    \column{0.5\textwidth}
+      \centering
+      \includegraphics[width=0.82\textwidth]{ssb_finite_size.png}\\
+      SSB order parameter vs $L$
+    \column{0.5\textwidth}
+      \centering
+      \includegraphics[width=0.82\textwidth]{fig5_original.png}\\
+      Phase boundaries vs $L$ (original paper Fig 5)
+  \end{columns}
+  \vspace{0.2em}
+  \begin{itemize}
+    \item At $L=200$: strong, immediate HD/LD (dense $\sim0.9$, dilute $\sim0.04$).
+    \item At $L=1000$: broken states flip; long runs are needed to observe the
+      separation.
+    \item Paper: the LD/LD band \emph{shrinks} with $L$ --- likely a
+      finite-size effect that vanishes in the thermodynamic limit.
+  \end{itemize}
 \end{frame}
 
-\begin{frame}{One run $\rightarrow$ all figures}
+%% =====================================================================
+\section{Computational methods}
+\begin{frame}{Simulations: BKL and the GPU ensemble}
+  \begin{columns}
+    \column{0.5\textwidth}
+      \textbf{BKL (Bortz--Kalos--Lebowitz)}
+      \begin{itemize}
+        \item Rejection-free: pick events proportional to their rates.
+        \item Classic double-loop selection: cost $\propto n_{\mathrm{active}}$.
+        \item Fenwick-tree selection in $O(\log L)$: \textbf{$\sim$4$\times$
+          faster, identical physics}.
+      \end{itemize}
+      \vspace{0.5em}
+      \begin{tabular}{lc}
+        \toprule
+        Kernel & Msteps/s \\
+        \midrule
+        classic BKL & 1.2 \\
+        Fenwick BKL & 4.8 \\
+        \bottomrule
+      \end{tabular}
+    \column{0.5\textwidth}
+      \textbf{GPU: one thread per replica}
+      \[
+        \text{GPU}:\; \mathrm{rep}_1 \oplus \mathrm{rep}_2 \oplus \cdots \oplus \mathrm{rep}_N
+      \]
+      \begin{itemize}
+        \item A serial chain maps poorly to the GPU; an \emph{ensemble} maps
+          perfectly.
+        \item Thousands of replicas per $\beta$ --- exactly what $P(\rho_1,\rho_2)$
+          needs.
+      \end{itemize}
+      \vspace{0.5em}
+      \begin{tabular}{lc}
+        \toprule
+        Backend & Msteps/s \\
+        \midrule
+        CPU, 1 thread & 4.4 \\
+        CPU, 12 cores & 29.6 \\
+        GPU ensemble (2060 SUPER) & $\sim$85 \\
+        \bottomrule
+      \end{tabular}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{One run $\to$ all figures}
   \begin{itemize}
     \item \texttt{run\_all\_gpu.py}: one GPU ensemble scan produces ALL MC data
-      (fig2, fig3, fig6, SSB), saved to \texttt{results/gpu/*.npz}.
-    \item \texttt{plot\_all.py}: plots every figure by READING the saved data;
-      no MC at plot time.
+      (phase diagram, currents, densities, $P(\rho_1,\rho_2)$, SSB) saved to
+      \texttt{results/gpu/*.npz}.
+    \item \texttt{plot\_all.py}: plots every figure by \emph{reading} the saved
+      data --- no MC at plot time.
+    \item Reproducible: fixed seeds, checkpointed chunks (crash-safe).
   \end{itemize}
-  This avoids re-running MC for each figure.
+  \pause
+  \begin{block}{Cost model (BKL vs Fenwick vs GPU)}
+    Classic BKL $\propto n_{\mathrm{active}}$ (fast at low density), Fenwick/GPU
+    $\propto \log L$ (wins at high density). The paths \emph{cross} in $\beta$.
+  \end{block}
 \end{frame}
 
+%% =====================================================================
 \section{Conclusions \& Outlook}
 \begin{frame}{Summary}
   \begin{itemize}
-    \item Full reproduction of the two-channel ASEP with narrow entrances.
-    \item Confirmed the paper's message: MFT transition positions deviate from
-      MC due to neglected boundary correlations.
-    \item SSB characterized with a robust order parameter
-      $\mathrm{std}(\rho_1-\rho_2)$ and an ensemble $P(\rho_1,\rho_2)$;
-      strong finite-size dependence.
-    \item GPU ensemble gives ~19$\times$ speedup and enables long runs /
-      thousands of replicas.
+    \item Reproduced the two-channel ASEP with narrow entrances: model, MFT
+      phase diagram, currents, densities, $P(\rho_1,\rho_2)$.
+    \item Mean-field predicts two symmetric (LD, MC) and two broken (HD/LD,
+      LD/LD) phases via self-consistent effective entrance rates.
+    \item Confirmed the paper's message: MFT transition positions are
+      \emph{not exact} --- the boundary coupling creates correlations MFT
+      misses.
+    \item SSB characterized robustly with $\mathrm{std}(\rho_1-\rho_2)$ and the
+      ensemble $P(\rho_1,\rho_2)$; strong finite-size dependence.
+    \item GPU ensemble ($\sim$85 Msteps/s) enables thousands of replicas and
+      long runs.
   \end{itemize}
 \end{frame}
 
 \begin{frame}{Open questions}
   \begin{itemize}
-    \item Does the LD/LD band survive at $L=1000$ and move with $L$?
-    \item Does the MFT-vs-MC deviation shrink with $L$ or persist (genuine MF
-      failure)? Needs longer runs at $L=800$.
-    \item Going beyond 2nd order / adding correlation parameters might improve
-      MFT.
+    \item Does the LD/LD band survive at $L=1000$ and move with $L$? (Paper
+      suggests it vanishes in the thermodynamic limit.)
+    \item Does the MFT-vs-MC deviation shrink with $L$ or persist (genuine
+      mean-field failure)? Needs longer runs at $L=800$.
+    \item Can going beyond 2nd order / adding boundary-correlation parameters
+      fix MFT?
+    \item Extensions: asymmetric rates, wider entrances, 3 channels?
   \end{itemize}
+  \vspace{0.8em}
+  \centering
+  \emph{Thank you!}
 \end{frame}
 
 \end{document}

@@ -1,0 +1,114 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="lattice" name="Lattice Schematic">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ================= VERTICES ================= -->
+
+        <!-- Labels -->
+        <mxCell id="lane1label" value="Channel 1 (→)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lane2label" value="Channel 2 (←)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="260" width="180" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Channel 1 sites (0..L-1) -->
+        <mxCell id="c1_s0" value="0" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="250" y="70" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c1_s1" value="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="295" y="70" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c1_s2" value="2" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="340" y="70" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c1_dots" value="…" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=18;" vertex="1" parent="1">
+          <mxGeometry x="385" y="70" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c1_sLm2" value="L−2" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="430" y="70" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c1_sLm1" value="L−1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="475" y="70" width="40" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Channel 2 sites -->
+        <mxCell id="c2_s0" value="0" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="250" y="250" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c2_s1" value="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="295" y="250" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c2_s2" value="2" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="340" y="250" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c2_dots" value="…" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=18;" vertex="1" parent="1">
+          <mxGeometry x="385" y="250" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c2_sLm2" value="L−2" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="430" y="250" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c2_sLm1" value="L−1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="475" y="250" width="40" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Source / Sink nodes -->
+        <mxCell id="ent1box" value="Source" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="120" y="60" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ent2box" value="Source" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="710" y="245" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="sink1" value="Sink" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="620" y="60" width="70" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="sink2" value="Sink" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="40" y="245" width="70" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Narrow entrance coupling annotations -->
+        <mxCell id="coup1" value="enter1 ⟺ c2[0] empty" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;dashed=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="700" y="140" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="coup2" value="enter2 ⟺ c1[L−1] empty" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;dashed=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="700" y="190" width="220" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend" value="Legend:&#xa;● enter (rate α)&#xa;● hop (rate 1)&#xa;● exit (rate β)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="700" y="260" width="260" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ================= EDGES (after vertices) ================= -->
+
+        <!-- Hopping arrows -->
+        <mxCell id="hop1" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="c1_s0" target="c1_s1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hop2" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="c2_sLm1" target="c2_sLm2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Entrance arrows -->
+        <mxCell id="ent1" value="enter (α)" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#00a651;strokeWidth=2;fontColor=#00a651;fontSize=12;endArrow=classic;" edge="1" parent="1" source="ent1box" target="c1_s0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ent2" value="enter (α)" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#00a651;strokeWidth=2;fontColor=#00a651;fontSize=12;endArrow=classic;" edge="1" parent="1" source="ent2box" target="c2_sLm1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Exit arrows -->
+        <mxCell id="exit1" value="exit (β)" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#b85450;strokeWidth=2;fontColor=#b85450;fontSize=12;endArrow=classic;" edge="1" parent="1" source="c1_sLm1" target="sink1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="exit2" value="exit (β)" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#b85450;strokeWidth=2;fontColor=#b85450;fontSize=12;endArrow=classic;" edge="1" parent="1" source="c2_s0" target="sink2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
