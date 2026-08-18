@@ -244,6 +244,33 @@ def _cuda_available():
         return False
 
 
+@pytest.mark.skipif(not _cuda_available(), reason="CUDA GPU not available")
+def test_gpu_continuation_reaches_HDLD():
+    """
+    The persistent-continuation ensemble (run_ensemble_cuda_continue) must keep
+    each replica's trajectory CONTINUOUS across chunks, so long runs reach the
+    HD/LD basin (dense well above 0.5 at alpha=0.9, beta=0.1, L=1000). This
+    guards against the per-chunk-reseed bug (each chunk an independent short
+    trajectory stuck at dense~0.27) that produced the false 'no HD/LD' result.
+    """
+    from asep.cuda_ensemble import run_ensemble_cuda_continue
+    from numba import cuda
+
+    L = 1000
+    alpha, beta = 0.9, 0.1
+    nrep = 128
+    state = run_ensemble_cuda_continue(L, nrep, seed=0)
+    state["alpha_d"] = cuda.to_device(np.full(nrep, alpha))
+    state["beta_d"] = cuda.to_device(np.full(nrep, beta))
+    # warmup + several continuous 2M-step chunks
+    state["advance"](2_000_000, warmup=200_000, sample_every=50000)
+    for _ in range(3):
+        res = state["advance"](2_000_000, warmup=0, sample_every=50000)
+    # continuous trajectory should have pushed the dense channel well above 0.5
+    assert res["dense"].mean() > 0.6, (
+        f"continuous run should reach HD/LD, dense={res['dense'].mean():.3f}")
+
+
 def test_batch_matches_serial_fenwick():
     """
     The parallel batch kernel (run_bkl_fenwick_batch) must produce bit-identical

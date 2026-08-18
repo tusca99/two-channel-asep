@@ -51,6 +51,17 @@
   theory/fig5_hdld_equilibration.md. Backend (GPU/Rust/AVX) tutti ~entro 2x
   (serial chain); il lever è un run continuo corretto (~10 min L=1000), non
   budget enormi.
+- [x] **GPU BKL profiling (Nsight Compute)**: il 35 kstep/s/replica è REALE e
+  spiegato: 95.8% stall = long_scoreboard (latenza memoria globale sul Fenwick
+  scattered per-thread), NON Numba/RNG/matematica. Persiste a 57.8% occupancy.
+  Fenwick è già meglio di classic BKL (che peggiorerebbe). Rewrite CUDA C NON
+  aiuta (stessa global mem). Aggregate GPU ~72 Mstep/s vs CPU 12-core ~58
+  (~1.2x). Vedi theory/gpu_bkl_profiling.md. Lever = saturare occupancy (nrep
+  migliaia), non backend.
+- [ ] **New paper (Jimenez & Ortiz 2015, OkMC GPU)**: theory/1-s2.0-...pdf.
+  Parallel event-selection per-particle. MA: particelle indipendenti (no
+  exclusion); la nostra exclusion coupling rende "parallel across particles"
+  harder. Da valutare per l'extension, non per il kernel attuale.
 - [ ] Error bars in fig6 (n_reps già nel codice, serve rerun).
 - [ ] Presentazione: aggiungere figure L200, sezione MFT-vs-MC.
 

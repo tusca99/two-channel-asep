@@ -1,7 +1,7 @@
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
-results/
+#results/
 *.h5
 *.npy
 .pytest_cache/
@@ -9,7 +9,7 @@ results/
 *.egg-info/
 dist/
 build/
-theory/
+#theory/
 
 # LaTeX build artifacts
 *.aux

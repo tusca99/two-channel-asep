@@ -108,7 +108,8 @@ def main():
         ax.plot(Ls, mc_betas, "o-", ms=5, label=rf"$\alpha={alpha}$ (MC)")
         ax.axhline(mft, color="k", ls="--", lw=1.0,
                    label=rf"$\alpha={alpha}$ (MFT)")
-    ax.set_xlabel(r"$L$"); ax.set_ylabel(r"$\beta_{LD/MC}$ (rho>=0.4)")
+    ax.set_xlabel(r"$L$")
+    ax.set_ylabel(r"LD/MC transition $\beta$")
     ax.set_title("LD/MC boundary vs L")
     ax.legend(fontsize=7)
 

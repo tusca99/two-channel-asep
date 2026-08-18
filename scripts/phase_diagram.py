@@ -122,7 +122,7 @@ def add_phase_legend(ax):
         plt.Line2D([0], [0], color="k", ls=":", lw=1.5, label="LD/LD (eq 33)"),
     ]
     ax.legend(handles=phase_handles + line_handles, loc="upper left",
-              fontsize=7, title="MC phase / MFT lines")
+              fontsize=7, title="Simulation / MFT lines")
 
 
 def main():

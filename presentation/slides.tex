@@ -46,7 +46,7 @@
     In cells, kinesin and dynein walk \emph{in opposite directions} on the
     same microtubule. Two lanes of particles moving in opposite directions,
     coupled at the boundaries --- can they \emph{break symmetry}
-    spontaneously?.
+    spontaneously?
   \end{block}
 \end{frame}
 
@@ -98,18 +98,21 @@
     \end{tikzpicture}
   \end{center}
   \vspace{0.5em}
-  \begin{block}{Surprising result}
-    Despite exact symmetry of the rules, the steady state can be
-    \textbf{asymmetric}: one lane dense, the other dilute.
+  \begin{block}{Steady states}
+    \textbf{Symmetric:} $\rho_1 = \rho_2$ (both lanes equal).\\
+    \textbf{Asymmetric:} despite exact symmetry of the rules, one lane dense,
+    the other dilute --- $\rho_1 \neq \rho_2$.
   \end{block}
-  \note{Two identical lanes, identical dynamics, identical injection --- yet
-    the steady state can be asymmetric. This is the two-lane variant of the
-    Bridge model from class: spontaneous symmetry breaking in both LD/LD and
-    LD/HD. The diagram shows the setup: channel 1 enters left and hops right,
-    channel 2 enters right and hops left. The dashed lines are the key
-    ingredient --- the narrow entrance: you can only enter a lane if the exit
-    site of the OTHER lane is empty. So the two lanes share a bottleneck at
-    each end.}
+  \note{Two identical lanes, identical dynamics, identical injection. The
+    natural guess is a symmetric steady state: both lanes at the same density.
+    The surprising result is that the steady state can instead be asymmetric
+    --- one lane dense, the other dilute --- even though the rules are exactly
+    symmetric. This is spontaneous symmetry breaking, the two-lane variant of
+    the Bridge model from class (broken in both LD/LD and LD/HD). The diagram
+    shows the setup: channel 1 enters left and hops right, channel 2 enters
+    right and hops left. The dashed lines are the key ingredient --- the narrow
+    entrance: you can only enter a lane if the exit site of the OTHER lane is
+    empty. So the two lanes share a bottleneck at each end.}
 \end{frame}
 
 %% =====================================================================
@@ -133,7 +136,46 @@
     \item Enter channel 2 (rate $\alpha$) iff site L of channel 2 is empty
       \textbf{and} the exit site of channel 1 is empty.
   \end{itemize}
-  \vspace{0.5em}
+  \vspace{0.4em}
+  \begin{center}
+    \begin{tikzpicture}[
+      x=0.62cm, y=0.62cm,
+      site/.style={draw=black!60, minimum size=0.6cm, inner sep=0,
+                   font=\footnotesize},
+      occ/.style={draw=black!60, fill=black!15, minimum size=0.6cm, inner sep=0,
+                  font=\footnotesize},
+      ent/.style={draw=green!55!black, fill=green!12, minimum size=0.6cm,
+                  inner sep=0, font=\footnotesize},
+      ball/.style={circle, fill=blue!50, draw=blue!70!black, minimum size=0.45cm}
+    ]
+      % ================= LEFT: exit of ch.2 empty -> enters =================
+      % channel 1 (top row): entrance + sites
+      \node[ent] (e1) at (0, 0.9) {$\alpha$};
+      \node[site] (s1) at (1.4, 0.9) {$1$};
+      \node[site] (s2) at (2.5, 0.9) {$\cdots$};
+      \node[site] (s3) at (3.6, 0.9) {$L$};
+      % incoming particle, OUTSIDE the entrance (left)
+      \node[ball] (b) at (-1.0, 0.9) {};
+      \draw[->, green!50!black, thick] (b.east) -- (s1.west);
+      % channel 2 exit site (bottom row), empty
+      \node[site] (x2) at (1.4, -0.9) {$1$};
+      \node[align=center, font=\scriptsize, text width=3.6cm, green!40!black]
+        at (1.9, -2.1) {(a) exit of ch.2 empty\\ $\Rightarrow$ particle enters};
+
+      % ================= RIGHT: exit of ch.2 occupied -> blocked ============
+      \node[ent] (e1r) at (6.0, 0.9) {$\alpha$};
+      \node[site] (s1r) at (7.4, 0.9) {$1$};
+      \node[site] (s2r) at (8.5, 0.9) {$\cdots$};
+      \node[site] (s3r) at (9.6, 0.9) {$L$};
+      % incoming particle, OUTSIDE the entrance (left)
+      \node[ball] (br) at (5.0, 0.9) {};
+      % channel 2 exit site (bottom row), occupied
+      \node[occ] (x2r) at (7.4, -0.9) {$1$};
+      \node[align=center, font=\scriptsize, text width=3.6cm, red!70!black]
+        at (7.9, -2.1) {(b) exit of ch.2 occupied\\ $\Rightarrow$ entry blocked};
+    \end{tikzpicture}
+  \end{center}
+  \vspace{0.3em}
   \begin{block}{The coupling}
     Each channel's \emph{entrance} is coupled to the other channel's
     \emph{exit} --- a shared bottleneck at each end.
@@ -147,17 +189,23 @@
 \end{frame}
 
 \begin{frame}{What we want to compute}
-  Steady-state properties as a function of $(\alpha, \beta)$:
+  Steady-state properties as a function of the rates $(\alpha, \beta)$:
   \begin{itemize}
+    \item $\alpha$ = entrance rate of either channel (identical for both).
+    \item $\beta$ = exit rate of either channel (identical for both).
     \item Phase diagram in the $(\alpha, \beta)$ plane.
     \item Bulk densities $\rho_1, \rho_2$ and currents $J_1, J_2$.
     \item The joint density distribution $P(\rho_1, \rho_2)$ --- the diagnostic
       for spontaneous symmetry breaking (SSB).
   \end{itemize}
-  \note{Approach: mean-field theory solves the model analytically; Monte Carlo
-    checks the theory. The phase diagram and currents come from MFT; the joint
-    density distribution P(rho1,rho2) is the diagnostic for symmetry breaking
-    --- a single peak means symmetric, two peaks means broken.}
+  \note{Let me define the parameters up front. alpha is the entrance rate, beta
+    the exit rate --- identical for the two channels. What we want out of the
+    model is the phase diagram in the (alpha,beta) plane, the bulk densities
+    rho1, rho2 and currents J1, J2 of each channel, and especially the joint
+    density distribution P(rho1,rho2). That last one is the diagnostic for
+    symmetry breaking: a single peak means the two lanes are equal, two peaks
+    means they have broken apart. Approach: mean-field theory solves the model
+    analytically; Monte Carlo checks the theory.}
 \end{frame}
 
 %% =====================================================================
@@ -200,8 +248,12 @@
         \bottomrule
       \end{tabular}
 
-      \vspace{0.5em}
-      For a single lane, \textbf{mean-field is exact} (matrix ansatz).
+      \vspace{0.3em}
+      \footnotesize
+      LD = low density, HD = high density, MC = maximal current.
+
+      \vspace{0.3em}
+      For a single lane, \textbf{mean-field (MFT) is exact} (matrix ansatz).
   \end{columns}
 \end{frame}
 
@@ -213,34 +265,67 @@
     \item At $\alpha > 1/2$, increasing $\beta$ drives LD $\to$ MC through the
       maximal-current value $J=1/4$.
     \item The current saturates: the bulk becomes the rate-limiting step.
+    \item All curves collapse onto $J=1/4$ for $\alpha>1/2$ --- no overlap for
+      $\alpha<1/2$ (each stays on its own $\alpha(1-\alpha)$ line).
   \end{itemize}
+  \note{Here J is the single-lane current in mean-field, MFT. When alpha is
+    below 1/2 the current sits on the curve alpha(1-alpha); when alpha exceeds
+    1/2 the current saturates at the maximal value 1/4. So curves with
+    different alpha >= 1/2 collapse onto the same plateau --- that is expected,
+    not an error. I will add an intermediate alpha and an inset zoom later once
+    the theory section is finalized.}
 \end{frame}
 
 %% =====================================================================
 \section{Mean-field theory for the two-channel model}
 \begin{frame}{Strategy: two single-lane TASEPs with effective rates}
-  \small
-  The two-channel model is two single-lane TASEPs (with exit rate $\beta$),
-  coupled \emph{only through the entrances} (eq 2 of the paper):
+  \footnotesize
+  \setlength{\abovedisplayskip}{2pt}
+  \setlength{\belowdisplayskip}{2pt}
+  Two single-lane TASEPs coupled \emph{only through the entrances} (eq 2);
+  the \emph{exit} rate $\beta$ is identical for both, only the entrance rates
+  differ.
   \begin{block}{Effective entrance rates}
-    \begin{align}
+    \footnotesize
+    \begin{align*}
       \alpha_1 &= \alpha\,\langle 1 - m_1\rangle = \alpha (1 - m_1), \\
       \alpha_2 &= \alpha\,\langle 1 - p_L\rangle = \alpha (1 - p_L),
-    \end{align}
-    where $m_1$ = density at site 1 of channel 2 (its exit),
-    $p_L$ = density at site $L$ of channel 1 (its exit).
+    \end{align*}
+    $\alpha_1,\alpha_2$ = entrance rates felt by channels 1, 2; $m_1$ =
+    channel 2's exit density, $p_L$ = channel 1's exit density.
   \end{block}
-  Each channel is then a standard TASEP with rates $(\alpha_1, \beta)$ and
-  $(\alpha_2, \beta)$ --- whose steady states we already know.
-  \pause
+  Each channel is a standard TASEP with rates $(\alpha_1,\beta)$,
+  $(\alpha_2,\beta)$ --- whose steady states we already know. \pause
   \begin{block}{Nine candidate phases}
-    $3 \times 3$ combinations (LD/HD/MC per channel) $\to$ filter by
-    self-consistency of $\alpha_1, \alpha_2$.
+    \scriptsize
+    Each channel in LD/HD/MC $\Rightarrow$ $3\times3$; filter by
+    self-consistency of $\alpha_1,\alpha_2$:
+    \[
+      \setlength{\arraycolsep}{4pt}
+      \begin{array}{c|ccc}
+        \text{ch.2} \backslash \text{ch.1} & \mathrm{LD} & \mathrm{HD} & \mathrm{MC}\\
+        \hline
+        \mathrm{LD} & \mathbf{LD/LD} & \mathbf{HD/LD} & \mathrm{MC/LD}\\
+        \mathrm{HD} & \mathbf{LD/HD} & \mathrm{HD/HD} & \mathrm{MC/HD}\\
+        \mathrm{MC} & \mathrm{LD/MC} & \mathrm{HD/MC} & \mathrm{MC/MC}
+      \end{array}
+    \]
+    Only the \textbf{bold} combinations survive.
   \end{block}
+  \note{Because the two channels share the same exit rate beta but couple only
+    at the entrances, we can think of each channel as a standard single-lane
+    TASEP with its own effective entrance rate. Channel 1 feels alpha_1, channel
+    2 feels alpha_2. Each channel independently sits in LD, HD or MC, giving
+    nine candidate combinations. The job of the mean-field calculation is to
+    check each of the nine for self-consistency and see which ones actually
+    exist. We will find that only LD/LD and HD/LD survive.}
 \end{frame}
 
 \begin{frame}{Symmetric phases: set-up}
   \small
+  Notation: $p_i$ = density at site $i$ of channel 1, $m_i$ = density at site
+  $i$ of channel 2, both counted from their own entrance ($i=1,\dots,L$).
+  So $m_1$ is channel 2's exit density, $p_L$ is channel 1's exit density.
   \begin{block}{Symmetric ansatz (eq 6-7)}
     \[
       J_1 = J_2, \quad \rho_1 = \rho_2, \quad \alpha_1 = \alpha_2, \qquad
@@ -256,6 +341,13 @@
         J_2 = \beta\, m_1 .
       \]
   \end{itemize}
+  \note{Let me fix the notation, since this comes up everywhere. Channel 1 has
+    densities p_i and channel 2 has densities m_i, both counted from their own
+    entrance. So the coupling at the left end ties the entrance of channel 1,
+    p_1, to the exit of channel 2, m_1; and at the right end ties channel 2's
+    entrance m_L to channel 1's exit p_L. The exit current of channel 2 is
+    beta times m_1, its exit-site density. This J_2 = beta m_1 relation is the
+    workhorse of the whole calculation.}
 \end{frame}
 
 \begin{frame}{Symmetric MC phase (eqs 8--10)}
@@ -266,6 +358,8 @@
   \[
     J_2 = \beta m_1 = \frac14 \quad\Rightarrow\quad m_1 = \frac{1}{4\beta}.
   \]
+  \pause
+  (This assumes $\beta \neq 0$; the physical range is $\beta>0$.)
   \pause
   \textbf{Step 2: effective entrance rate (eq 9).}
   \[
@@ -618,23 +712,30 @@
 \begin{frame}{Finite-size effects}
   \small
   \begin{columns}
-    \column{0.5\textwidth}
+    \column{0.46\textwidth}
       \centering
-      \includegraphics[width=0.82\textwidth]{ssb_finite_size.png}\\
+      \includegraphics[width=0.88\textwidth]{ssb_finite_size.png}\\
       SSB order parameter vs $L$
-    \column{0.5\textwidth}
+    \column{0.54\textwidth}
       \centering
-      \includegraphics[width=0.82\textwidth]{fig5_original.png}\\
+      \includegraphics[width=0.85\textwidth]{fig5_original.png}\\
       Phase boundaries vs $L$ (original paper Fig 5)
   \end{columns}
-  \vspace{0.2em}
+  \vspace{0.1em}
   \begin{itemize}
     \item At $L=200$: strong, immediate HD/LD (dense $\sim0.9$, dilute $\sim0.04$).
-    \item At $L=1000$: broken states flip; long runs are needed to observe the
-      separation.
-    \item Paper: the LD/LD band \emph{shrinks} with $L$ --- likely a
-      finite-size effect that vanishes in the thermodynamic limit.
+    \item At $L=1000$: broken states flip; long runs are needed.
+    \item Paper: LD/LD band \emph{shrinks} with $L$ --- likely a finite-size
+      effect vanishing in the thermodynamic limit.
   \end{itemize}
+  \note{All the mean-field predictions we have written down assume a large
+    lattice --- they are bulk results in the thermodynamic limit. The
+    simulations, of course, are at finite L. This slide is about how the
+    symmetry-breaking signal changes with L: small L gives an immediate, sharp
+    HD/LD separation; at large L the broken states flip back and forth and you
+    need long runs --- or an ensemble --- to see the two peaks. The right panel
+    is the original paper's Fig 5: the phase boundaries as a function of L. I
+    will enlarge it once the theory figures are final.}
 \end{frame}
 
 %% =====================================================================

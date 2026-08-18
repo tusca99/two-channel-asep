@@ -19,12 +19,23 @@ import os
 import sys
 import numpy as np
 
+# General command: python scripts/run_all_gpu.py [--L N] [--out DIR] [--load]
+# Produces the full figure data set for any lattice size L into results/<out>.
 OUT = os.path.join(os.path.dirname(__file__), "..", "results", "gpu")
+if "--out" in sys.argv:
+    OUT = sys.argv[sys.argv.index("--out") + 1]
 OUT = os.path.abspath(OUT)
 os.makedirs(OUT, exist_ok=True)
 
 ALPHA = 0.9
 L = 1000
+if "--L" in sys.argv:
+    L = int(sys.argv[sys.argv.index("--L") + 1])
+
+
+def _steps(per_site):
+    """Total steps per replica for a given per-site budget (equilibration ~L^3)."""
+    return int(L * per_site)
 
 
 def scan_phase_diagram():
@@ -34,8 +45,8 @@ def scan_phase_diagram():
 
     alphas = np.linspace(0.05, 0.95, 31)
     betas = np.linspace(0.05, 0.95, 31)
-    grid = scan_phase_diagram_gpu(alphas, betas, L, 2_000_000, 200_000, 400,
-                                  n_reps=16, seed=0)
+    grid = scan_phase_diagram_gpu(alphas, betas, L, _steps(2000), _steps(200),
+                                  400, n_reps=16, seed=0)
     d = os.path.join(OUT, "fig2")
     os.makedirs(d, exist_ok=True)
     np.save(f"{d}/grid_full.npy", grid, allow_pickle=True)
@@ -44,8 +55,8 @@ def scan_phase_diagram():
 
     zoom_a = np.linspace(0.05, 0.95, 31)
     zoom_b = np.linspace(0.2, 0.4, 21)
-    zoom = scan_phase_diagram_gpu(zoom_a, zoom_b, L, 2_000_000, 200_000, 400,
-                                  n_reps=16, seed=1)
+    zoom = scan_phase_diagram_gpu(zoom_a, zoom_b, L, _steps(2000), _steps(200),
+                                  400, n_reps=16, seed=1)
     np.save(f"{d}/grid_zoom.npy", zoom, allow_pickle=True)
     np.save(f"{d}/alphas_zoom.npy", zoom_a)
     np.save(f"{d}/betas_zoom.npy", zoom_b)
@@ -60,7 +71,7 @@ def scan_fig6():
     d = os.path.join(OUT, "fig6")
     os.makedirs(d, exist_ok=True)
     for alpha in [0.1, 0.8, 0.9]:
-        res = scan_beta_gpu(alpha, betas, L, 3_000_000, 300_000, 400,
+        res = scan_beta_gpu(alpha, betas, L, _steps(3000), _steps(300), 400,
                             n_reps=32, seed=0)
         (J1, J2, rho1, rho2, eJ1, eJ2, erho1, erho2,
          dense, dilute, edense, edilute) = res
@@ -82,7 +93,7 @@ def scan_fig3():
     all_betas = sorted(set(snapshot_betas) |
                        set(round(b, 6) for b in anim_betas))
     n_reps = 2048
-    steps = 2_000_000
+    steps = _steps(2000)
     sample_every = 50000
 
     pts = {}
@@ -92,7 +103,7 @@ def scan_fig3():
         nrep = len(chunk) * n_reps
         bb = np.repeat(np.array(chunk), n_reps)
         res = run_ensemble_cuda(0.0, 0.0, L, steps, nrep, seed=7,
-                                sample_every=sample_every, warmup=200000,
+                                sample_every=sample_every, warmup=_steps(200),
                                 alphas=np.full(nrep, ALPHA), betas=bb)
         for i, b in enumerate(chunk):
             sl = slice(i * n_reps, (i + 1) * n_reps)
@@ -107,35 +118,63 @@ def scan_fig3():
 
 
 def scan_ssb():
-    """SSB: diff & std(rho1-rho2) vs beta, long runs at L."""
-    from asep.cuda_ensemble import run_ensemble_cuda
+    """SSB: diff & std(rho1-rho2) vs beta, LONG CONTINUOUS runs at L.
+
+    Uses run_ensemble_cuda_continue so each replica's trajectory is continuous
+    across chunks (no per-chunk reseed). The per-chunk-reseed bug made every
+    chunk an independent short trajectory that never reached the HD/LD basin;
+    this version does, so dense/dilute/std(rho1-rho2) correctly measure the
+    spontaneous symmetry breaking.
+
+    All betas advance TOGETHER in one persistent launch: each beta gets its own
+    block of `nrep` replica threads, so the GPU is filled across points (enough
+    threads) while each beta still keeps >=100 reps. One chunk step advances
+    every beta/replica by `chunk` steps simultaneously.
+    """
+    from asep.cuda_ensemble import run_ensemble_cuda_continue
+    from numba import cuda
 
     betas = [0.05, 0.08, 0.10, 0.12, 0.15, 0.2, 0.25, 0.3]
-    nrep = 128
-    chunk = 2_000_000
-    nchunks = 50
+    nb = len(betas)
+    nrep = 1024                      # replicas per beta
+    chunk = _steps(2000)             # 2M steps/site per chunk
+    nchunks = 60                     # 60M steps/replica after warmup
+    warmup_chunks = 10               # 20M steps equilibration
     sample_every = 50000
+    n_total = nb * nrep
+
+    # one persistent state with all betas; alpha/beta per-replica arrays
+    state = run_ensemble_cuda_continue(L, n_total, seed=0)
+    state["alpha_d"] = cuda.to_device(np.full(n_total, ALPHA))
+    state["beta_d"] = cuda.to_device(
+        np.repeat(np.array(betas, dtype=np.float64), nrep))
+
+    # per-beta running buffers, indexed by replica offset
+    offs = {b: i * nrep for i, b in enumerate(betas)}
+    dens_buf = {b: np.zeros((nrep, nchunks)) for b in betas}
+    dilu_buf = {b: np.zeros((nrep, nchunks)) for b in betas}
+    std_buf = {b: np.zeros((nrep, nchunks)) for b in betas}
+
+    # continuous warmup (not sampled)
+    for _ in range(warmup_chunks):
+        state["advance"](chunk, warmup=0, sample_every=0)
+
+    # continuous sampled chunks, all betas together
+    for ci in range(nchunks):
+        res = state["advance"](chunk, warmup=0, sample_every=sample_every)
+        for i, b in enumerate(betas):
+            o = i * nrep
+            dens_buf[b][:, ci] = res["dense"][o:o + nrep]
+            dilu_buf[b][:, ci] = res["dilute"][o:o + nrep]
+            std_buf[b][:, ci] = res["std_diff"][o:o + nrep]
+        if (ci + 1) % 10 == 0:
+            print(f"  ssb chunk {ci+1}/{nchunks} done", flush=True)
 
     for b in betas:
-        aa = np.full(nrep, ALPHA)
-        bb = np.full(nrep, b)
-        dens_buf = np.zeros((nrep, nchunks))
-        dilu_buf = np.zeros((nrep, nchunks))
-        std_buf = np.zeros((nrep, nchunks))
-        cur1 = np.zeros(nrep); cur2 = np.zeros(nrep); ttime = np.zeros(nrep)
-        for ci in range(nchunks):
-            res = run_ensemble_cuda(0.0, 0.0, L, chunk, nrep, seed=1000 + ci,
-                                    sample_every=sample_every, warmup=0,
-                                    alphas=aa, betas=bb)
-            for i in range(nrep):
-                dens_buf[i, ci] = max(res["rho1"][i], res["rho2"][i])
-                dilu_buf[i, ci] = min(res["rho1"][i], res["rho2"][i])
-                std_buf[i, ci] = res["std_diff"][i]
-            cur1 += res["cur1"]; cur2 += res["cur2"]; ttime += res["ttime"]
-        np.savez(f"{OUT}/ssb_beta{b}.npz", dense=dens_buf, dilute=dilu_buf,
-                 std=std_buf, cur1=cur1, cur2=cur2, ttime=ttime,
+        np.savez(f"{OUT}/ssb_beta{b}.npz", dense=dens_buf[b],
+                 dilute=dilu_buf[b], std=std_buf[b],
                  alpha=ALPHA, L=L, chunk=chunk, nchunks=nchunks, nrep=nrep)
-        print(f"  ssb beta={b} saved", flush=True)
+        print(f"  ssb beta={b} saved (continuous)", flush=True)
 
 
 def main():

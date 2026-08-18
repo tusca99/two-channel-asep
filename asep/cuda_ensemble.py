@@ -127,7 +127,7 @@ def _pick_move(lane1, lane2, base, alpha, beta, L, site, r):
 @cuda.jit
 def _run_kernel(lane1, lane2, rates, bit, cur1, cur2, tot_time,
                 alpha_arr, beta_arr, L, steps, warmup, states,
-                sample_every, stats_acc):
+                sample_every, stats_acc, init_lattice):
     t = cuda.grid(1)
     if t >= cur1.shape[0]:
         return
@@ -138,24 +138,34 @@ def _run_kernel(lane1, lane2, rates, bit, cur1, cur2, tot_time,
     # occupancy counters for O(1) bulk-density updates
     n1 = 0
     n2 = 0
-    for i in range(L):
-        u = xoroshiro128p_uniform_float64(states, t)
-        lane1[base + i] = 1 if u < 0.4 else 0
-        n1 += lane1[base + i]
-        u = xoroshiro128p_uniform_float64(states, t)
-        lane2[base + i] = 1 if u < 0.4 else 0
-        n2 += lane2[base + i]
-
-    for i in range(L):
-        rates[base + i] = _site_rate(lane1, lane2, base, alpha, beta, L, i)
-    _bit_build(rates, bit, base, L)
-
-    # total rate kept as a per-thread scalar, updated incrementally on refresh
-    total_rate = 0.0
-    idx = L
-    while idx > 0:
-        total_rate += bit[base + idx]
-        idx -= idx & -idx
+    if init_lattice:
+        for i in range(L):
+            u = xoroshiro128p_uniform_float64(states, t)
+            lane1[base + i] = 1 if u < 0.4 else 0
+            n1 += lane1[base + i]
+            u = xoroshiro128p_uniform_float64(states, t)
+            lane2[base + i] = 1 if u < 0.4 else 0
+            n2 += lane2[base + i]
+        for i in range(L):
+            rates[base + i] = _site_rate(lane1, lane2, base, alpha, beta, L, i)
+        _bit_build(rates, bit, base, L)
+        # total rate kept as a per-thread scalar, updated incrementally
+        idx = L
+        total_rate = 0.0
+        while idx > 0:
+            total_rate += bit[base + idx]
+            idx -= idx & -idx
+    else:
+        # continuation: lattice/Fenwick/RNG persisted from the previous launch;
+        # only rebuild the total-rate scalar (Fenwick tree is already built).
+        for i in range(L):
+            n1 += lane1[base + i]
+            n2 += lane2[base + i]
+        idx = L
+        total_rate = 0.0
+        while idx > 0:
+            total_rate += bit[base + idx]
+            idx -= idx & -idx
 
     ttime = 0.0
     c1 = 0
@@ -274,7 +284,7 @@ def run_ensemble_cuda(alpha, beta, L, steps, n_replicas, seed=0, block=256,
     grid = (nrep + block - 1) // block
     _run_kernel[grid, block](lane1, lane2, rates, bit, cur1, cur2, ttime,
                              alpha_d, beta_d, L, steps, warmup, states,
-                             sample_every, stats)
+                             sample_every, stats, True)
     cuda.synchronize()
 
     c1 = cur1.copy_to_host()
@@ -306,6 +316,107 @@ def run_ensemble_cuda(alpha, beta, L, steps, n_replicas, seed=0, block=256,
         out["rho2"] = rho2
         out["std_diff"] = std_diff
         out["dense"] = dense
+        out["dilute"] = dilute
+        out["n_samples"] = ns.astype(np.int64)
+    return out
+
+
+def run_ensemble_cuda_continue(L, n_replicas, seed=0, block=256):
+    """
+    Create a persistent GPU ensemble state for continuous (multi-chunk) runs.
+
+    Unlike run_ensemble_cuda, which allocates fresh device arrays and
+    re-initializes a random lattice every call, this returns a state object
+    whose device arrays (lattice, Fenwick, RNG states, running stats, currents,
+    times) persist across successive `advance` calls. This gives a true
+    continuous trajectory per replica (no per-chunk reseeding), which is what
+    reaches the HD/LD basin — the per-chunk-reseed bug in run_all_gpu.py did not.
+
+    Returns
+    -------
+    A dict with persistent device arrays and an `advance(...)` bound method.
+    See `_AdvanceState.advance`.
+    """
+    nrep = int(n_replicas)
+    L = int(L)
+    seed = int(seed)
+    block = int(block)
+
+    lane1 = cuda.device_array(nrep * L, dtype=np.int8)
+    lane2 = cuda.device_array(nrep * L, dtype=np.int8)
+    rates = cuda.device_array(nrep * L, dtype=np.float32)
+    bit = cuda.device_array(nrep * (L + 1), dtype=np.float32)
+    cur1 = cuda.device_array(nrep, dtype=np.float64)
+    cur2 = cuda.device_array(nrep, dtype=np.float64)
+    ttime = cuda.device_array(nrep, dtype=np.float64)
+    stats = cuda.device_array(nrep * 8, dtype=np.float64)
+    stats[:] = 0.0
+    states = create_xoroshiro128p_states(nrep, seed=seed)
+    alpha_d = cuda.to_device(np.full(nrep, 0.9, dtype=np.float64))
+    beta_d = cuda.to_device(np.full(nrep, 0.1, dtype=np.float64))
+
+    state = {
+        "L": L, "nrep": nrep, "block": block,
+        "lane1": lane1, "lane2": lane2, "rates": rates, "bit": bit,
+        "cur1": cur1, "cur2": cur2, "ttime": ttime, "stats": stats,
+        "states": states, "alpha_d": alpha_d, "beta_d": beta_d,
+    }
+    state["advance"] = lambda steps, warmup=0, sample_every=0: _advance(
+        state, steps, warmup, sample_every)
+    return state
+
+
+def _advance(state, steps, warmup=0, sample_every=0):
+    """Run `steps` more MC steps on the persistent ensemble state.
+
+    The first call initializes the random lattice (init_lattice=True); later
+    calls continue the existing lattice/Fenwick/RNG (init_lattice=False), so
+    the trajectory is continuous across calls.
+
+    Returns the same dict format as run_ensemble_cuda (host copies of the
+    accumulated observables).
+    """
+    L = state["L"]
+    nrep = state["nrep"]
+    block = state["block"]
+    lane1 = state["lane1"]; lane2 = state["lane2"]
+    rates = state["rates"]; bit = state["bit"]
+    cur1 = state["cur1"]; cur2 = state["cur2"]; ttime = state["ttime"]
+    stats = state["stats"]; states = state["states"]
+    alpha_d = state["alpha_d"]; beta_d = state["beta_d"]
+
+    init = not state.get("_initialized", False)
+    grid = (nrep + block - 1) // block
+    _run_kernel[grid, block](lane1, lane2, rates, bit, cur1, cur2, ttime,
+                             alpha_d, beta_d, L, steps, warmup, states,
+                             sample_every, stats, init)
+    cuda.synchronize()
+    state["_initialized"] = True
+
+    c1 = cur1.copy_to_host()
+    c2 = cur2.copy_to_host()
+    tt = ttime.copy_to_host()
+    st = stats.copy_to_host().reshape(nrep, 8)
+
+    out = {
+        "cur1": c1, "cur2": c2, "ttime": tt,
+        "alphas": alpha_d.copy_to_host(), "betas": beta_d.copy_to_host(),
+    }
+    if sample_every > 0:
+        ns = st[:, 7]
+        rho1 = np.zeros(nrep); rho2 = np.zeros(nrep)
+        std_diff = np.zeros(nrep); dense = np.zeros(nrep); dilute = np.zeros(nrep)
+        for i in range(nrep):
+            n = ns[i]
+            if n > 0:
+                rho1[i] = st[i, 0] / n
+                rho2[i] = st[i, 2] / n
+                var = st[i, 4] / n - (rho1[i] - rho2[i]) ** 2
+                std_diff[i] = np.sqrt(max(var, 0.0))
+                dense[i] = st[i, 5] / n
+                dilute[i] = st[i, 6] / n
+        out["rho1"] = rho1; out["rho2"] = rho2
+        out["std_diff"] = std_diff; out["dense"] = dense
         out["dilute"] = dilute
         out["n_samples"] = ns.astype(np.int64)
     return out
