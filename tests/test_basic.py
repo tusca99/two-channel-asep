@@ -55,6 +55,22 @@ def test_current_conservation():
     assert np.all(bulk2 >= 0) and np.all(bulk2 <= 1)
 
 
+def test_adaptive_convergence():
+    """run_adaptive should stop early once the current plateaus, and agree
+    with a full run of the same length on the converged observable."""
+    sim = TwoChannelASEP(L=200, alpha=0.9, beta=0.9, seed=7)
+    steps = sim.run_adaptive(max_steps=2_000_000, sample_every=200,
+                             warmup=10000, block=1000, tol=1e-3,
+                             min_steps=50_000)
+    J1, J2 = sim.get_currents()
+    # Converged MC current should be near 0.25 (suppressed by coupling)
+    assert 0.15 < J1 < 0.25, f"J1={J1:.4f}"
+    assert 0.15 < J2 < 0.25, f"J2={J2:.4f}"
+    # It should have stopped well before the max (plateau detected)
+    assert steps < 2_000_000, f"adaptive run did not stop early ({steps} steps)"
+    assert steps >= 50_000, "should respect min_steps"
+
+
 if __name__ == "__main__":
     test_ld_phase()
     print("LD test passed.")
@@ -64,4 +80,6 @@ if __name__ == "__main__":
     print("HD/LD asymmetry test passed.")
     test_current_conservation()
     print("Current conservation test passed.")
+    test_adaptive_convergence()
+    print("Adaptive convergence test passed.")
     print("\nAll tests passed.")

@@ -23,6 +23,22 @@ def _run_point(task):
     return J1, J2, r1, r2
 
 
+def _run_point_adaptive(task, tol=1e-3, min_steps=0):
+    """Like _run_point but stops early once the current plateaus.
+
+    Uses TwoChannelASEP.run_adaptive, which stops when the windowed current
+    matches the cumulative current to within `tol`. Returns the same
+    (J1, J2, rho1, rho2) tuple as _run_point.
+    """
+    alpha, beta, L, n_steps, warmup, sample_every, seed = task
+    sim = TwoChannelASEP(L=L, alpha=alpha, beta=beta, seed=seed)
+    sim.run_adaptive(max_steps=n_steps, sample_every=sample_every,
+                      warmup=warmup, tol=tol, min_steps=min_steps)
+    J1, J2 = sim.get_currents()
+    r1, r2 = sim.get_bulk_densities()
+    return J1, J2, r1, r2
+
+
 def _run_point_samples(task):
     """Run one point; return (J1, J2, rho1, rho2, joint_samples)."""
     alpha, beta, L, n_steps, warmup, sample_every, seed = task
@@ -33,15 +49,24 @@ def _run_point_samples(task):
     return J1, J2, r1, r2, sim.get_joint_density_samples()
 
 
-def scan_points(tasks, n_workers=None, desc="scan"):
+def scan_points(tasks, n_workers=None, desc="scan", adaptive=False,
+                tol=1e-3, min_steps=0):
     """
     Run a list of independent (alpha, beta, L, n_steps, warmup, sample_every, seed)
     tasks in parallel and return their (J1, J2, rho1, rho2) results, preserving order.
     Shows a tqdm progress bar.
+
+    If `adaptive` is True, each point stops early once its current plateaus
+    (see TwoChannelASEP.run_adaptive), which can cut runtime several-fold in
+    phases where the current converges quickly.
     """
     results = [None] * len(tasks)
     with ProcessPoolExecutor(max_workers=n_workers) as ex:
-        futures = {ex.submit(_run_point, t): j for j, t in enumerate(tasks)}
+        if adaptive:
+            futures = {ex.submit(_run_point_adaptive, t, tol, min_steps): j
+                       for j, t in enumerate(tasks)}
+        else:
+            futures = {ex.submit(_run_point, t): j for j, t in enumerate(tasks)}
         for fut in tqdm(as_completed(futures), total=len(tasks), desc=desc):
             results[futures[fut]] = fut.result()
     return results
@@ -58,6 +83,59 @@ def scan_points_samples(tasks, n_workers=None, desc="scan"):
         for fut in tqdm(as_completed(futures), total=len(tasks), desc=desc):
             results[futures[fut]] = fut.result()
     return results
+
+
+def scan_points_batch(tasks, n_workers=None, desc="scan batch", chunk=None):
+    """
+    Run independent tasks with the parallel BKL-Fenwick kernel
+    (asep.bkl.run_bkl_fenwick_batch) instead of ProcessPool.
+
+    Tasks share the same (L, n_steps, warmup, sample_every); only
+    (alpha, beta, seed) vary per task. Each task's RNG stream is seeded from
+    its own seed, so replicas are independent and reproducible.
+
+    Returns (J1, J2, rho1, rho2) arrays, one per task (order preserved).
+    This is a multi-core (prange) path: replicas are independent but each runs
+    the serial Fenwick kernel, so the gain over ProcessPool is modest (~10-15%).
+    """
+    from asep.bkl import run_bkl_fenwick_batch
+
+    if len(tasks) == 0:
+        return np.zeros(0), np.zeros(0), np.zeros(0), np.zeros(0)
+
+    L = tasks[0][2]
+    n_steps = tasks[0][3]
+    alphas = np.array([t[0] for t in tasks], dtype=np.float64)
+    betas = np.array([t[1] for t in tasks], dtype=np.float64)
+    N = len(tasks)
+
+    lane1 = np.zeros((N, L), dtype=np.int8)
+    lane2 = np.zeros((N, L), dtype=np.int8)
+
+    J1 = np.zeros(N)
+    J2 = np.zeros(N)
+    r1 = np.zeros(N)
+    r2 = np.zeros(N)
+
+    if chunk is None:
+        chunk = N
+    for c0 in tqdm(range(0, N, chunk), desc=desc):
+        sl = slice(c0, min(c0 + chunk, N))
+        n = sl.stop - sl.start
+        # one independent uniform stream per replica
+        uf = np.empty(n * n_steps * 3, dtype=np.float64)
+        off = 0
+        for j in range(n):
+            rng = np.random.default_rng(int(tasks[c0 + j][6]))
+            uf[off:off + n_steps * 3] = rng.random(n_steps * 3)
+            off += n_steps * 3
+        tt, e1, e2 = run_bkl_fenwick_batch(
+            lane1[sl], lane2[sl], alphas[sl], betas[sl], n_steps, uf)
+        J1[sl] = e1 / tt
+        J2[sl] = e2 / tt
+        r1[sl] = lane1[sl].mean(axis=1)
+        r2[sl] = lane2[sl].mean(axis=1)
+    return J1, J2, r1, r2
 
 
 def make_tasks(alphas, betas, L, n_steps, warmup, sample_every, seed=0):

@@ -24,7 +24,7 @@ def scan_alpha_beta(alphas, betas, L, n_steps, warmup, sample_every, seed=0):
         for b in betas:
             tasks.append((a, b, L, n_steps, warmup, sample_every,
                           int(rng.integers(1e9))))
-    res = scan_points(tasks, desc=f"L={L}")
+    res = scan_points(tasks, desc=f"L={L}", adaptive=True)
     na, nb = len(alphas), len(betas)
     J1 = np.zeros((na, nb)); J2 = np.zeros((na, nb))
     r1 = np.zeros((na, nb)); r2 = np.zeros((na, nb))

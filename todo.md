@@ -22,10 +22,20 @@
 - Per L=200 la CPU è 13x più veloce della GPU per ~100 realizzazioni.
 
 ### Prossimo (non fatto)
-- **Convergenza adattiva** (punto 2): fermare la run quando l'osservabile smette di
-  cambiare, invece di correre sempre L³ step. Il guadagno più alto e gratis.
-  (AVX across trajectories = punto 3, ~1.5-2x, secondario.)
-- fig5 a L=200 ha NaN (SSB troppo forte per soglia fissa) — serve soglia adattiva per L.
+- [x] **Convergenza adattiva** (punto 2): `TwoChannelASEP.run_adaptive` ferma la
+  run quando la corrente a finestra (ultimi `win_steps`) coincide con la corrente
+  cumulativa entro `tol`. In MC (α=0.9, β=0.9, L=200) si ferma a ~29% dei max_steps
+  con |ΔJ|~0.01. Test `test_adaptive_convergence` aggiunto (14/14 passano).
+  Wired into `scan_points(adaptive=True)` + scripts fig6/currents_densities/mf_mc_boundary.
+  **Speedup misurato (L=200, 2M max_steps): MC/HD ~3-4x, LD ~20x** (la corrente
+  converge presto).
+- [ ] **AVX across trajectories** (punto 3): MISURATO e RIDIMENSIONATO. Il gain è
+  multi-core, non SIMD: `run_bkl_fenwick_batch` (prange su repliche indipendenti,
+  ognuna col suo slice di uniforms) = 14.0 Mstep/s su 12 core vs 2.9 Mstep/s
+  seriale (~4.8x), pari a ProcessPool (~5x). Le catene Fenwick find/update sono
+  data-dependent e non vettorizzabili. `scan_points_batch` NON è più veloce di
+  ProcessPool (overhead Python per-replica lo cancella). Test batch==serial
+  bit-identico aggiunto (15/15 passano).- fig5 a L=200 ha NaN (SSB troppo forte per soglia fissa) — serve soglia adattiva per L.
 - Error bars in fig6 (n_reps già nel codice, serve rerun).
 - Presentazione: aggiungere figure L200, sezione MFT-vs-MC.
 

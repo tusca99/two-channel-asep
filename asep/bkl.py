@@ -23,7 +23,7 @@ boundary sites 0, L-1), so after each move we recompute rate[] on that small
 window and update the active-site list.
 """
 import numpy as np
-from numba import njit
+from numba import njit, prange
 
 
 @njit(cache=True, fastmath=True)
@@ -264,6 +264,39 @@ def run_bkl_fenwick(lane1, lane2, alpha, beta, n_steps, uniforms, u_idx):
         _refresh_window_fenwick(lane1, lane2, alpha, beta, L, rates, bit, chosen)
 
     return total_time, n_exit1, n_exit2, u_idx
+
+
+@njit(cache=True, fastmath=True, parallel=True)
+def run_bkl_fenwick_batch(lane1, lane2, alphas, betas, n_steps, uniforms):
+    """
+    Run n_steps of BKL-Fenwick MC for an array of independent replicas.
+
+    lane1, lane2 : int8 arrays of shape (n_replicas, L), modified in-place.
+    alphas, betas: float64 arrays of length n_replicas (one parameter set per
+        replica), enabling a single-launch heterogeneous scan.
+    uniforms     : float64 array of pre-generated uniform(0,1) draws. Each
+        replica consumes up to 3 uniforms per step from its own contiguous
+        slice (offset i * n_steps * 3), so replicas stay independent and
+        reproducible given a seed.
+
+    Returns (total_times, n_exit1, n_exit2) as arrays of length n_replicas.
+
+    Replicas are independent (no cross-replica coupling), so they are executed
+    across threads with prange. Each replica still runs the serial Fenwick
+    kernel (its data-dependent find/update chains are not SIMD-friendly), so
+    the win is multi-core scaling, not AVX.
+    """
+    N, L = lane1.shape
+    total_time = np.zeros(N, dtype=np.float64)
+    n_exit1 = np.zeros(N, dtype=np.int64)
+    n_exit2 = np.zeros(N, dtype=np.int64)
+    for i in prange(N):
+        dt, e1, e2, _ = run_bkl_fenwick(lane1[i], lane2[i], alphas[i], betas[i],
+                                        n_steps, uniforms, i * n_steps * 3)
+        total_time[i] = dt
+        n_exit1[i] = e1
+        n_exit2[i] = e2
+    return total_time, n_exit1, n_exit2
 
 
 @njit(cache=True, fastmath=True)

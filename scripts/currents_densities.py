@@ -38,7 +38,8 @@ def scan_beta_stats(alpha, betas, L, n_steps, warmup, sample_every, n_reps,
     tasks = [(alpha, b, L, n_steps, warmup, sample_every,
               int(rng.integers(1e9)))
              for b in betas for _ in range(n_reps)]
-    res = scan_points(tasks, desc=f"alpha={alpha} ({n_reps} reps)")
+    res = scan_points(tasks, desc=f"alpha={alpha} ({n_reps} reps)",
+                      adaptive=True)
     nb = len(betas)
     J1 = np.zeros(nb); J2 = np.zeros(nb); r1 = np.zeros(nb); r2 = np.zeros(nb)
     eJ1 = np.zeros(nb); eJ2 = np.zeros(nb); er1 = np.zeros(nb); er2 = np.zeros(nb)

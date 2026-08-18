@@ -102,6 +102,81 @@ class TwoChannelASEP:
                 self._n_samples += 1
                 self._joint_samples.append((np.mean(self.lane1), np.mean(self.lane2)))
 
+    def run_adaptive(self, max_steps: int, sample_every: int = 100,
+                     warmup: int = 0, use_bkl: bool = True,
+                     block: int = 1000, tol: float = 1e-3,
+                     min_steps: int = 0, win_steps: int = 50_000):
+        """
+        Run until the steady-state current plateaus, or `max_steps` is reached.
+
+        The current J = (exits1 + exits2) / total_time is the natural
+        convergence observable: it is cheap to accumulate per block and is
+        exactly what the phase classifier consumes. After `warmup` we track
+        the windowed current over the last `win_steps` steps; once two
+        consecutive windowed currents agree to within `tol` (and at least
+        `min_steps` have run), the run stops early.
+
+        Returns the number of steps actually executed.
+        """
+        done = 0
+        # Windowed current: exits accumulated over the last `win_steps` steps.
+        # We keep a ring of per-block (exits, dt) and slide it forward.
+        ring = []          # (exits, dt) per block, within the current window
+        ring_exits = 0.0
+        ring_dt = 0.0
+        ring_steps = 0
+        while done < max_steps:
+            step = min(block, max_steps - done)
+            uniforms = make_uniforms(step * 3, self._rng)
+            if use_bkl:
+                dt, e1, e2, _ = run_bkl_fenwick(
+                    self.lane1, self.lane2, self.alpha, self.beta, step,
+                    uniforms, 0
+                )
+            else:
+                dt, e1, e2 = run_mc_batched(
+                    self.lane1, self.lane2, self.alpha, self.beta, step,
+                    uniforms
+                )
+            self.total_time += dt
+            self.current1 += e1
+            self.current2 += e2
+            done += step
+
+            if done > warmup and done % sample_every < block:
+                self._density_samples1.append(np.mean(self.lane1))
+                self._density_samples2.append(np.mean(self.lane2))
+                self._time_samples.append(self.total_time)
+                self._site_density1 += self.lane1.astype(np.float64)
+                self._site_density2 += self.lane2.astype(np.float64)
+                self._n_samples += 1
+                self._joint_samples.append((np.mean(self.lane1), np.mean(self.lane2)))
+
+            # Slide the windowed-current ring forward (window in steps).
+            if dt > 0 and done > warmup:
+                ring.append((e1 + e2, dt, step))
+                ring_exits += e1 + e2
+                ring_dt += dt
+                ring_steps += step
+                while ring_steps > win_steps:
+                    re, rdt, rstep = ring.pop(0)
+                    ring_exits -= re
+                    ring_dt -= rdt
+                    ring_steps -= rstep
+                # Steady state: the recent windowed current matches the
+                # cumulative current (total exits / total time). The cumulative
+                # current is a stable, monotone reference, so agreement means
+                # the system has stopped drifting.
+                if (ring_steps >= win_steps * 0.5 and ring_dt > 0
+                        and self.total_time > 0 and done >= min_steps):
+                    cur_win = ring_exits / ring_dt
+                    cur_cum = (self.current1 + self.current2) / self.total_time
+                    if cur_win > 0 and cur_cum > 0:
+                        rel = abs(cur_win - cur_cum) / cur_cum
+                        if rel < tol:
+                            break
+        return done
+
     def get_bulk_densities(self):
         """
         Return bulk densities (mean over all sites, time-averaged).

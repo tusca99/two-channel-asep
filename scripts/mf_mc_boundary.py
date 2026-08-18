@@ -53,7 +53,7 @@ def _scan(tasks, n_reps=1, use_gpu=True):
                             np.mean([v[2] for v in vals]),
                             np.mean([v[3] for v in vals])))
             return out
-    return scan_points(tasks)
+    return scan_points(tasks, adaptive=True)
 
 
 def main():

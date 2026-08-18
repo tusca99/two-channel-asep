@@ -244,6 +244,49 @@ def _cuda_available():
         return False
 
 
+def test_batch_matches_serial_fenwick():
+    """
+    The parallel batch kernel (run_bkl_fenwick_batch) must produce bit-identical
+    trajectories to running the serial Fenwick kernel once per replica, given
+    the same per-replica uniform streams. This guards the physics against the
+    prange/SoA refactor.
+    """
+    from asep.bkl import run_bkl_fenwick, run_bkl_fenwick_batch
+    L = 100
+    n_steps = 5000
+    N = 4
+    rng = np.random.default_rng(123)
+    uf = rng.random(N * n_steps * 3).astype(np.float64)
+    alphas = np.array([0.9, 0.5, 0.7, 0.3])
+    betas = np.array([0.9, 0.5, 0.3, 0.7])
+
+    # serial: each replica from its own uniform slice
+    lane1s = np.zeros((N, L), dtype=np.int8)
+    lane2s = np.zeros((N, L), dtype=np.int8)
+    lane1s[:, :L // 2] = 1
+    lane2s[:, L // 2:] = 1
+    dts, e1s, e2s = [], [], []
+    for i in range(N):
+        dt, e1, e2, _ = run_bkl_fenwick(
+            lane1s[i], lane2s[i], alphas[i], betas[i], n_steps, uf,
+            i * n_steps * 3)
+        dts.append(dt); e1s.append(e1); e2s.append(e2)
+
+    # batch
+    lane1b = np.zeros((N, L), dtype=np.int8)
+    lane2b = np.zeros((N, L), dtype=np.int8)
+    lane1b[:, :L // 2] = 1
+    lane2b[:, L // 2:] = 1
+    tt, e1, e2 = run_bkl_fenwick_batch(lane1b, lane2b, alphas, betas,
+                                       n_steps, uf)
+
+    assert np.array_equal(lane1s, lane1b)
+    assert np.array_equal(lane2s, lane2b)
+    assert np.allclose(tt, np.array(dts))
+    assert np.array_equal(e1, np.array(e1s))
+    assert np.array_equal(e2, np.array(e2s))
+
+
 def _gpu_obs(alpha, beta, L, steps, warmup, nrep, sample_every, seed):
     """Steady-state currents+density from the GPU ensemble kernel (many reps)."""
     from asep.cuda_ensemble import run_ensemble_cuda
