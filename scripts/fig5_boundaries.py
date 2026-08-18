@@ -26,9 +26,8 @@ os.makedirs(OUT, exist_ok=True)
 from asep.parallel import scan_grid_gpu  # noqa: F401  (kept for reference)
 
 
-def classify_point(rhos1, rhos2, alpha, beta, asym_threshold=0.04,
-                   mc_rho=0.35):
-    """Classify phase from per-replica densities (ensemble method).
+def classify_point(rhos1, rhos2, J1, J2, alpha, beta, L, mc_rho=0.45):
+    """Classify phase from per-replica densities + currents (ensemble method).
 
     Uses std(rho1-rho2) as the robust SSB order parameter. Our model shows a
     WEAK asymmetry (dense~0.27, not a true HD with rho>0.5), so we classify
@@ -36,12 +35,25 @@ def classify_point(rhos1, rhos2, alpha, beta, asym_threshold=0.04,
       - asymmetric (std_diff > threshold): LD/LD-type broken state
       - symmetric low density: LD
       - symmetric high density: MC
+
+    MC is identified by current saturation (paper Fig 4 method): J plateaus at
+    1/4 in MC. Combined with a high density (mc_rho=0.45, near the MC rho=1/2)
+    this locates the LD/MC boundary correctly (a fixed low threshold misplaces
+    it — the L~0.477 vs paper ~0.7 discrepancy was a threshold artifact).
+
+    The SSB threshold is L-adaptive: the noise floor of std(rho1-rho2) in the
+    symmetric phase scales as ~1/sqrt(L), so a fixed threshold over-classifies
+    small L as asymmetric (the L=200 NaN bug). Calibrate 0.04 at L=1000.
     """
     d = np.array(rhos1) - np.array(rhos2)
     asym = d.std()
     rho_avg = (np.mean(rhos1) + np.mean(rhos2)) / 2
+    asym_threshold = 0.04 * np.sqrt(1000.0 / L)
+    j_cur = (np.mean(J1) + np.mean(J2)) / 2
     if asym < asym_threshold:
-        return "MC" if rho_avg > mc_rho else "LD", asym
+        if j_cur >= 0.25 - 0.02 and rho_avg > mc_rho:
+            return "MC", asym
+        return "LD", asym
     return "asym", asym
 
 
@@ -57,12 +69,11 @@ def _one_replica(args):
                                     uniforms, warmup * 3)
     return (e1 / dt, e2 / dt, np.mean(lane1), np.mean(lane2))
 
-
 def phase_boundary_in_beta(alphas, betas, L, n_steps, warmup, sample_every,
                            n_reps, seed=0):
     """For each alpha, classify phases vs beta on CPU (12-core).
 
-    Returns grid[i,j] = (rhos1, rhos2) per-replica densities for point
+    Returns grid[i,j] = (J1s, J2s, rhos1, rhos2) per-replica values for point
     (alphas[i], betas[j])."""
     from concurrent.futures import ProcessPoolExecutor
     rng = np.random.default_rng(seed)
@@ -76,7 +87,8 @@ def phase_boundary_in_beta(alphas, betas, L, n_steps, warmup, sample_every,
     for i in range(na):
         for j in range(nb):
             reps = res[k * n_reps:(k + 1) * n_reps]
-            grid[i, j] = ([r[2] for r in reps], [r[3] for r in reps])
+            grid[i, j] = ([r[0] for r in reps], [r[1] for r in reps],
+                          [r[2] for r in reps], [r[3] for r in reps])
             k += 1
     return grid
 
@@ -112,8 +124,9 @@ def _smooth_labels(labels):
 def main():
     n_reps = 8
     # steps scale with L (equilibration ~ L^3); warmup ~ 1M
-    Ls = np.array([200, 500, 1000])
-    steps_by_L = {200: 2_000_000, 500: 5_000_000, 1000: 10_000_000}
+    Ls = np.array([200, 500, 1000, 2000, 4000])
+    steps_by_L = {200: 2_000_000, 500: 5_000_000, 1000: 10_000_000,
+                  2000: 20_000_000, 4000: 40_000_000}
     warmup = 1_000_000
     sample_every = 200
 
@@ -129,8 +142,8 @@ def main():
                                       n_reps)
         labels = []
         for j in range(len(betas)):
-            r1s, r2s = grid[0][j]
-            lab, _ = classify_point(r1s, r2s, alpha_fixed, betas[j])
+            J1s, J2s, r1s, r2s = grid[0][j]
+            lab, _ = classify_point(r1s, r2s, J1s, J2s, alpha_fixed, betas[j], L)
             labels.append(lab)
         labels = _smooth_labels(labels)
         # transition: last asym -> LD
@@ -154,8 +167,8 @@ def main():
                                        n_reps)
         labels = []
         for i in range(len(alphas)):
-            r1s, r2s = grid[i][0]
-            lab, _ = classify_point(r1s, r2s, alphas[i], beta_fixed)
+            J1s, J2s, r1s, r2s = grid[i][0]
+            lab, _ = classify_point(r1s, r2s, J1s, J2s, alphas[i], beta_fixed, L)
             labels.append(lab)
         labels = _smooth_labels(labels)
         trans = None

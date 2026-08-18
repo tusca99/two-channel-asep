@@ -265,7 +265,7 @@ def scan_phase_diagram_gpu(alphas, betas, L, n_steps, warmup, sample_every,
             r2 = np.mean([r[3] for r in reps])
             samples = np.vstack([r[4] for r in reps]) if n_reps > 0 and reps[0][4].size else None
             grid[i, j] = classify_phase(J1, J2, r1, r2, a, b, L,
-                                        samples=samples)[0]
+                                        samples=samples, j_current=0.25)[0]
             k += 1
     return grid
 

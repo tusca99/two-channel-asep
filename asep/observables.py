@@ -13,16 +13,19 @@ import numpy as np
 
 
 def classify_phase(J1, J2, rho1, rho2, alpha, beta, L,
-                   asym_threshold=0.05, mc_rho=0.35, samples=None):
+                   asym_threshold=0.05, mc_rho=0.45, samples=None,
+                   j_current=None):
     """
     Classify the stationary phase of the two-channel ASEP.
 
-    Uses the joint density samples (if provided) to detect symmetry breaking
-    via std(rho1 - rho2); otherwise falls back to the time-averaged densities.
+    Symmetry breaking is detected via std(rho1 - rho2) (robust to the
+    state-flipping that washes out the time-averaged |rho1-rho2| at large L).
 
-    MC detection is density-based (rho_avg > mc_rho): at finite L the MC
-    current is suppressed below the MFT value 1/4, but the density still
-    rises toward 1/2, so density is the robust MC signature.
+    MC detection: a fixed density threshold (mc_rho) misplaces the LD/MC
+    boundary when density rises slowly toward 1/2. The paper (Fig 4) locates
+    the LD/MC boundary by *current saturation*: J saturates at 1/4 in MC.
+    So we classify as MC when the current is within `mc_tol` of 1/4 AND the
+    density is high, which is the robust signature.
 
     Parameters
     ----------
@@ -36,6 +39,9 @@ def classify_phase(J1, J2, rho1, rho2, alpha, beta, L,
         Lattice size
     samples : (N,2) array, optional
         Joint (rho1, rho2) density samples for the density-distribution method
+    j_current : float, optional
+        Saturated/current-saturation value. If given and J1+J2 is within
+        mc_tol of 2*j_current, MC is identified by current saturation first.
 
     Returns
     -------
@@ -50,10 +56,16 @@ def classify_phase(J1, J2, rho1, rho2, alpha, beta, L,
     else:
         asymmetry = abs(rho1 - rho2)
 
+    rho_avg = (rho1 + rho2) / 2
+
+    # MC by current saturation (paper Fig 4 method): J plateaus at 1/4 in MC.
+    mc_tol = 0.02
+    j_cur = j_current if j_current is not None else 0.25
+    j_sat = (J1 + J2) / 2 >= j_cur - mc_tol
+
     if asymmetry < asym_threshold:
         # Symmetric phase
-        rho_avg = (rho1 + rho2) / 2
-        if rho_avg > mc_rho:
+        if j_sat and rho_avg > mc_rho:
             return "MC", asymmetry
         return "LD", asymmetry
 

@@ -15,8 +15,9 @@
   misurata (max ~0.036). Presentazione Beamer (33 frame) in `presentation/`.
 
 ### Scoperte chiave (vedi presentation/notes_ssb_discrepancy.md)
-- SSB a L=1000 è asimmetria LD/LD debole (dense~0.27, non vero HD) → boundary HD/LD
-  del paper non riproducibile.
+- SSB a L=1000 è RISOLTO: il "dense~0.27, non vero HD" era un bug dei dati
+  (per-chunk reseed in run_all_gpu.py, non un run continuo). Un run continuo
+  raggiunge vero HD/LD (dense~0.89). Vedi theory/fig5_hdld_equilibration.md.
 - **CPU per-thread 4.4M step/s vs GPU 35k/s** → per run lunghe (equilibrazione) la CPU
   è 100x meglio; GPU vince solo col parallelismo di massa (phase diagram, ensemble).
 - Per L=200 la CPU è 13x più veloce della GPU per ~100 realizzazioni.
@@ -35,9 +36,23 @@
   seriale (~4.8x), pari a ProcessPool (~5x). Le catene Fenwick find/update sono
   data-dependent e non vettorizzabili. `scan_points_batch` NON è più veloce di
   ProcessPool (overhead Python per-replica lo cancella). Test batch==serial
-  bit-identico aggiunto (15/15 passano).- fig5 a L=200 ha NaN (SSB troppo forte per soglia fissa) — serve soglia adattiva per L.
-- Error bars in fig6 (n_reps già nel codice, serve rerun).
-- Presentazione: aggiungere figure L200, sezione MFT-vs-MC.
+  bit-identico aggiunto (15/15 passano).
+- [x] **Classifier fig5/fig2**: MC via current-saturation (J plateau ~1/4, metodo
+  paper Fig 4) + rho>0.45 invece di rho>0.35 → boundary MC/LD α ~0.70 (prima
+  0.477; il paper ~0.7-0.8). Soglia SSB L-adattiva 0.04·√(1000/L) → fix NaN a
+  L=200 (boundary asym→LD ~0.325). n_reps>=16 → fix outlier L=2000 (0.373→0.325).
+  VERIFICATO su /tmp/opencode/fig5_mcld.npy e fig5_L2000.npy.
+- [ ] **HD/LD RISOLTO**: NON era equilibration-limited. Calibration probe
+  (/tmp/opencode/calib_probe.py, α=0.9 β=0.1 L=1000, 12 rep, fino 500M step/rep,
+  ~10 min): dense≈0.89 dilute≈0.06, saturo da ~100M step, 12/12 rep. Il claim
+  "dense mai >0.5" derivava da un BUG dati: `run_all_gpu.py` resetta ogni chunk
+  con seed nuovo (traiettorie corte indipendenti, non un run continuo). Action:
+  rifare ssb scan GPU con traiettorie continue. Vedi
+  theory/fig5_hdld_equilibration.md. Backend (GPU/Rust/AVX) tutti ~entro 2x
+  (serial chain); il lever è un run continuo corretto (~10 min L=1000), non
+  budget enormi.
+- [ ] Error bars in fig6 (n_reps già nel codice, serve rerun).
+- [ ] Presentazione: aggiungere figure L200, sezione MFT-vs-MC.
 
 ## Paper Reading Phase
 - [x] Repo scaffold created (public, uv-based)
