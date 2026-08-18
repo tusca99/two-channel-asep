@@ -23,7 +23,7 @@ sys.path.insert(0, ROOT)
 OUT = os.path.join(ROOT, "results", "gpu")
 os.makedirs(OUT, exist_ok=True)
 
-from asep.parallel import scan_grid_gpu
+from asep.parallel import scan_grid_gpu  # noqa: F401  (kept for reference)
 
 
 def classify_point(rhos1, rhos2, alpha, beta, asym_threshold=0.04,
@@ -45,22 +45,38 @@ def classify_point(rhos1, rhos2, alpha, beta, asym_threshold=0.04,
     return "asym", asym
 
 
+def _one_replica(args):
+    alpha, beta, L, steps, warmup, seed = args
+    from asep.bkl import run_bkl_fenwick
+    rng = np.random.default_rng(seed)
+    lane1 = (rng.random(L) < 0.4).astype(np.int8)
+    lane2 = (rng.random(L) < 0.4).astype(np.int8)
+    uniforms = rng.random((steps + warmup) * 3)
+    run_bkl_fenwick(lane1, lane2, alpha, beta, warmup, uniforms, 0)
+    dt, e1, e2, _ = run_bkl_fenwick(lane1, lane2, alpha, beta, steps,
+                                    uniforms, warmup * 3)
+    return (e1 / dt, e2 / dt, np.mean(lane1), np.mean(lane2))
+
+
 def phase_boundary_in_beta(alphas, betas, L, n_steps, warmup, sample_every,
                            n_reps, seed=0):
-    """For each alpha, classify phases vs beta; return list of transition
-    beta positions and the phase labels per beta."""
-    res = scan_grid_gpu(alphas, betas, L, n_steps, warmup, sample_every,
-                        n_reps=n_reps, seed=seed, desc=f"L={L} beta-scan")
+    """For each alpha, classify phases vs beta on CPU (12-core).
+
+    Returns grid[i,j] = (rhos1, rhos2) per-replica densities for point
+    (alphas[i], betas[j])."""
+    from concurrent.futures import ProcessPoolExecutor
+    rng = np.random.default_rng(seed)
     na, nb = len(alphas), len(betas)
-    # collect per-replica rho per (alpha,beta)
+    tasks = [(a, b, L, n_steps, warmup, int(rng.integers(1e9)))
+             for a in alphas for b in betas for _ in range(n_reps)]
+    with ProcessPoolExecutor(max_workers=12) as ex:
+        res = list(ex.map(_one_replica, tasks))
     grid = np.empty((na, nb), dtype=object)
     k = 0
     for i in range(na):
         for j in range(nb):
             reps = res[k * n_reps:(k + 1) * n_reps]
-            rhos1 = [r[2] for r in reps]
-            rhos2 = [r[3] for r in reps]
-            grid[i, j] = (rhos1, rhos2)
+            grid[i, j] = ([r[2] for r in reps], [r[3] for r in reps])
             k += 1
     return grid
 
@@ -83,12 +99,23 @@ def find_transition(values, labels, target_order):
     return transitions
 
 
+def _smooth_labels(labels):
+    """Remove isolated labels (noise): a label flanked by the same other
+    label on both sides is flipped to that label."""
+    out = list(labels)
+    for j in range(1, len(labels) - 1):
+        if out[j] != out[j - 1] and out[j] != out[j + 1] and out[j - 1] == out[j + 1]:
+            out[j] = out[j - 1]
+    return out
+
+
 def main():
     n_reps = 8
-    n_steps = 2_000_000
-    warmup = 300_000
+    # steps scale with L (equilibration ~ L^3); warmup ~ 1M
+    Ls = np.array([200, 500, 1000])
+    steps_by_L = {200: 2_000_000, 500: 5_000_000, 1000: 10_000_000}
+    warmup = 1_000_000
     sample_every = 200
-    Ls = np.array([200, 500, 1000, 2000, 4000])
 
     # (a) beta boundary (asym -> LD) vs L, alpha = 0.9
     alpha_fixed = 0.9
@@ -97,13 +124,15 @@ def main():
     print("(a) beta boundary (asym->LD) vs L, alpha=0.9", flush=True)
     a_asym = []
     for L in Ls:
-        grid = phase_boundary_in_beta([alpha_fixed], betas, L, n_steps,
-                                      warmup, sample_every, n_reps)
+        grid = phase_boundary_in_beta([alpha_fixed], betas, L,
+                                      steps_by_L[L], warmup, sample_every,
+                                      n_reps)
         labels = []
         for j in range(len(betas)):
             r1s, r2s = grid[0][j]
             lab, _ = classify_point(r1s, r2s, alpha_fixed, betas[j])
             labels.append(lab)
+        labels = _smooth_labels(labels)
         # transition: last asym -> LD
         trans = None
         for j in range(1, len(betas)):
@@ -120,13 +149,15 @@ def main():
     print("(b) alpha boundary (LD->MC) vs L, beta=1.0", flush=True)
     b_mcld = []
     for L in Ls:
-        grid = phase_boundary_in_alpha(alphas, [beta_fixed], L, n_steps,
-                                       warmup, sample_every, n_reps)
+        grid = phase_boundary_in_alpha(alphas, [beta_fixed], L,
+                                       steps_by_L[L], warmup, sample_every,
+                                       n_reps)
         labels = []
         for i in range(len(alphas)):
             r1s, r2s = grid[i][0]
             lab, _ = classify_point(r1s, r2s, alphas[i], beta_fixed)
             labels.append(lab)
+        labels = _smooth_labels(labels)
         trans = None
         for i in range(1, len(alphas)):
             if labels[i - 1] == "LD" and labels[i] == "MC":
