@@ -15,13 +15,17 @@ Usage:
   python scripts/plot_all.py
 """
 import os
+import sys
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUT = os.path.join(ROOT, "results", "gpu")
+_OUT = os.path.join(ROOT, "results", "gpu")
+if "--out" in sys.argv:
+    _OUT = sys.argv[sys.argv.index("--out") + 1]
+OUT = os.path.abspath(_OUT)
 ALPHA = 0.9
 L = 1000
 
@@ -149,6 +153,7 @@ def plot_fig3():
     import sys
     sys.path.insert(0, os.path.join(ROOT, "scripts"))
     import fig3_plot as f3
+    f3.OUT = OUT  # point fig3_plot at the same output dir
     pts = f3.load_points("fig3_points.npz")
     f3.snapshots(pts)
     f3.animation_2d(pts)

@@ -8,6 +8,7 @@ union of betas (paper snapshots + animation range), save the per-replica
 heatmap animation and the 3D animation entirely from that one file.
 """
 import os
+import sys
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
@@ -17,6 +18,8 @@ from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
 from asep.cuda_ensemble import run_ensemble_cuda
 
 OUT = "/home/alessio/Documenti/two-channel-asep/results/gpu"
+if "--out" in sys.argv:
+    OUT = sys.argv[sys.argv.index("--out") + 1]
 os.makedirs(OUT, exist_ok=True)
 
 ALPHA = 0.9
@@ -142,26 +145,27 @@ def plot_3d(ax, H, xedges, yedges, beta, label):
     ax.set_box_aspect((1, 1, 0.6))
 
 
-def snapshots(pts):
+def snapshots(pts, bins=48):
     betas = [(0.23, "HD/LD"), (0.245, "HD/LD"), (0.255, "HD/LD"),
              (0.258, "HD/LD"), (0.2595, "HD/LD+LD/LD"), (0.262, "LD/LD"),
              (0.2685, "LD/LD+LD"), (0.28, "LD"), (0.95, "MC")]
     fig = plt.figure(figsize=(15, 12))
     for i, (beta, label) in enumerate(betas):
-        H, xe, ye = joint_histogram(pts[beta])
+        H, xe, ye = joint_histogram(pts[beta], bins=bins)
         ax = fig.add_subplot(3, 3, i + 1, projection="3d")
         plot_3d(ax, H, xe, ye, beta, label)
     fig.suptitle(rf"$P(\rho_1,\rho_2)$, $\alpha={ALPHA}$, $L={L}$, "
-                 rf"GPU ensemble of {N_REPS} replicas (paper Fig 3)")
+                 rf"GPU ensemble of {N_REPS} replicas, {bins}x{bins} bins "
+                 rf"(paper Fig 3)")
     fig.tight_layout()
     fig.savefig(f"{OUT}/fig3_joint_density_3d.png", dpi=150)
     print("saved fig3_joint_density_3d.png", flush=True)
 
 
-def animation_2d(pts, out="fig3_anim_2d.mp4"):
+def animation_2d(pts, out="fig3_anim_2d.mp4", bins=48):
     from matplotlib import animation
     betas = ANIM_BETAS
-    frames = [joint_histogram(pts[key_of(b)]) for b in betas]
+    frames = [joint_histogram(pts[key_of(b)], bins=bins) for b in betas]
     vmax = max(H.max() for H, _, _ in frames)
 
     fig, ax = plt.subplots(figsize=(6, 5.5))
@@ -185,10 +189,10 @@ def animation_2d(pts, out="fig3_anim_2d.mp4"):
     print(f"saved {out}", flush=True)
 
 
-def animation_3d(pts, out="fig3_anim.mp4"):
+def animation_3d(pts, out="fig3_anim.mp4", bins=48):
     from matplotlib import animation
     betas = ANIM_BETAS
-    frames = [joint_histogram(pts[key_of(b)]) for b in betas]
+    frames = [joint_histogram(pts[key_of(b)], bins=bins) for b in betas]
 
     fig = plt.figure(figsize=(7, 6))
     ax = fig.add_subplot(111, projection="3d")
@@ -211,12 +215,16 @@ if __name__ == "__main__":
     # --full: use the full beta range 0.02..1.0 (paper-like animation)
     if "--full" in sys.argv:
         set_full_range()
+    # --bins N: histogram resolution (default 48; 4x = 96)
+    bins = 48
+    if "--bins" in sys.argv:
+        bins = int(sys.argv[sys.argv.index("--bins") + 1])
     # --load: only build plots from saved points, do NOT re-scan
     if "--load" in sys.argv:
         pts = load_points()
     else:
         pts = scan_all()
-    snapshots(pts)
-    animation_2d(pts)
-    animation_3d(pts)
+    snapshots(pts, bins=bins)
+    animation_2d(pts, bins=bins)
+    animation_3d(pts, bins=bins)
     print("ALL DONE", flush=True)

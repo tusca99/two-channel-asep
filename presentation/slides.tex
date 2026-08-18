@@ -51,8 +51,6 @@
 \end{frame}
 
 \begin{frame}{The paper's question}
-  Two identical lanes, identical dynamics, identical injection.
-  \vspace{0.5em}
   \begin{center}
     \begin{tikzpicture}[
       x=0.9cm, y=0.82cm,
@@ -104,6 +102,14 @@
     Despite exact symmetry of the rules, the steady state can be
     \textbf{asymmetric}: one lane dense, the other dilute.
   \end{block}
+  \note{Two identical lanes, identical dynamics, identical injection --- yet
+    the steady state can be asymmetric. This is the two-lane variant of the
+    Bridge model from class: spontaneous symmetry breaking in both LD/LD and
+    LD/HD. The diagram shows the setup: channel 1 enters left and hops right,
+    channel 2 enters right and hops left. The dashed lines are the key
+    ingredient --- the narrow entrance: you can only enter a lane if the exit
+    site of the OTHER lane is empty. So the two lanes share a bottleneck at
+    each end.}
 \end{frame}
 
 %% =====================================================================
@@ -112,31 +118,32 @@
   \begin{center}
     \movie[autostart,loop,width=0.82\textwidth]{\includegraphics[width=0.82\textwidth]{poster_lattice.png}}{lattice_animation.mp4}
   \end{center}
-  \vspace{-0.5em}
-  \begin{itemize}
-    \item Channel 1: particles enter at the left, hop right (rate 1), exit right.
-    \item Channel 2: particles enter at the right, hop left (rate 1), exit left.
-    \item Hard-core exclusion: at most one particle per site.
-  \end{itemize}
-  \note{1 frame = 1 event (Gillespie). Waiting dots show the narrow-entrance
-    blockage: an entrance is blocked while the OTHER lane's exit site is occupied.}
+  \note{This is the model in action. Channel 1 (top) enters at the left and
+    hops right with rate 1; channel 2 (bottom) enters at the right and hops
+    left with rate 1. Hard-core exclusion: at most one particle per site.
+    One frame is one event (Gillespie). Watch the waiting dots at the ends:
+    an entrance is blocked while the OTHER lane's exit site is occupied ---
+    that is the narrow-entrance coupling.}
 \end{frame}
 
 \begin{frame}{The narrow-entrance rule}
   \begin{itemize}
-    \item Particle enters channel 1 (rate $\alpha$) iff site 1 of channel 1 is
-      \emph{empty} \textbf{and} the \emph{exit site of channel 2} is empty.
-    \item Particle enters channel 2 (rate $\alpha$) iff site L of channel 2 is
-      \emph{empty} \textbf{and} the \emph{exit site of channel 1} is empty.
-    \item Bulk hops: rate 1 to the next site, only if empty.
-    \item Exits: rate $\beta$, \emph{independent} of the other channel.
+    \item Enter channel 1 (rate $\alpha$) iff site 1 of channel 1 is empty
+      \textbf{and} the exit site of channel 2 is empty.
+    \item Enter channel 2 (rate $\alpha$) iff site L of channel 2 is empty
+      \textbf{and} the exit site of channel 1 is empty.
   \end{itemize}
   \vspace{0.5em}
   \begin{block}{The coupling}
     Each channel's \emph{entrance} is coupled to the other channel's
-    \emph{exit}. This is the ``narrow entrance'' (a bottleneck shared by both
-    lanes at each end).
+    \emph{exit} --- a shared bottleneck at each end.
   \end{block}
+  \note{The only non-trivial rule. Bulk hops are rate 1 to the next site if
+    empty; exits are rate beta, independent of the other channel. The coupling
+    is entirely at the entrances: to enter a lane you need the OTHER lane's
+    exit site to be free. This is the narrow entrance --- a bottleneck shared
+    by both lanes at each end. Everything interesting in this model comes from
+    this one rule.}
 \end{frame}
 
 \begin{frame}{What we want to compute}
@@ -147,9 +154,10 @@
     \item The joint density distribution $P(\rho_1, \rho_2)$ --- the diagnostic
       for spontaneous symmetry breaking (SSB).
   \end{itemize}
-  \vspace{0.5em}
-  Approach: mean-field theory (solves the model analytically), then Monte Carlo
-  (checks the theory).
+  \note{Approach: mean-field theory solves the model analytically; Monte Carlo
+    checks the theory. The phase diagram and currents come from MFT; the joint
+    density distribution P(rho1,rho2) is the diagnostic for symmetry breaking
+    --- a single peak means symmetric, two peaks means broken.}
 \end{frame}
 
 %% =====================================================================
@@ -169,7 +177,9 @@
   \[
     J = \langle p_i (1 - p_{i+1})\rangle = \rho(1-\rho), \qquad \rho = \langle p_i\rangle .
   \]
-  Three stationary phases depending on which boundary is rate-limiting.
+  \note{Three stationary phases depending on which boundary is rate-limiting:
+    LD when the entrance limits, HD when the exit limits, MC when the bulk
+    limits. This is the single-lane TASEP we will build on.}
 \end{frame}
 
 \begin{frame}{Single-lane phases and phase diagram}

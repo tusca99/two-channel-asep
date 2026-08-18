@@ -243,7 +243,13 @@ def run_ensemble_cuda(alpha, beta, L, steps, n_replicas, seed=0, block=256,
     `warmup` steps are discarded before any density sampling; currents and
     total time still accumulate over the full run (matching the CPU path).
     """
-    nrep = n_replicas
+    nrep = int(n_replicas)
+    L = int(L)
+    steps = int(steps)
+    warmup = int(warmup)
+    sample_every = int(sample_every)
+    seed = int(seed)
+    block = int(block)
     if alphas is None:
         alphas = np.full(nrep, alpha, dtype=np.float64)
     else:

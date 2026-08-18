@@ -42,6 +42,7 @@ Paper's Fig 3: 3D plots of P(ρ₁,ρ₂) with CLEAR bimodal peaks (SSB). Root c
 The paper's central point: unlike standard single-lane TASEP (where MFT gives exact phase boundaries), here the MFT transition positions deviate from MC. Investigate in detail:
 - [x] Add embarrassingly-parallel MC scans (asep/parallel.py, ~7-10x speedup on 12 cores) — no more waiting on serial beta scans
 - [x] Measure the LD/MC boundary shift vs MFT (scripts/mf_mc_boundary.py): MC boundary sits at HIGHER beta than MFT; deviation grows with alpha (+0.01 at a=0.8 -> +0.075 at a=1.0)
+- [x] Verify MFT boundary formulas against the paper (eq 10/13, 23, 33) — confirmed in phase_diagram.py. For alpha=0.9: HD/LD↔LD/LD at beta=0.3321, LD/LD↔LD at beta=0.3324 (nearly coincident); for beta=1.0: MC/LD at alpha=0.6667. NOTE: at L=1000 our SSB is a weak LD/LD-type asymmetry (dense~0.27, not a true HD), so the paper's HD/LD boundary is not directly reproducible; see presentation/notes_ssb_discrepancy.md.
 - [ ] For each boundary, measure the MC transition position vs the MFT prediction (e.g. α=2β/(4β−1) for LD/MC) and plot the deviation vs β
 - [ ] Check whether the deviation shrinks with L (finite-size) or persists in the thermodynamic limit (genuine MF failure) — NEED LONGER RUNS at L=800 (equilibration-limited, not parallelization-limited)
 - [ ] Compare with standard TASEP: confirm MFT is exact there (α=β=1/2 lines) vs. not exact here — this contrast is the paper's message
