@@ -21,17 +21,32 @@ Reproduce: Pronina & Kolomeisky, J. Phys. A 40, 2275 (2007)
 ### Code Structure
 ```
 asep/          ← simulation code (importable)
-  model.py     ← TwoChannelASEP class (Gillespie step)
-tests/         ← must pass
-notebooks/     ← reproduction notebooks
-theory/        ← notes, derivations
-results/       ← raw data (gitignored)
+  model.py     ← TwoChannelASEP class (uses run_bkl_fenwick by default)
+  bkl.py       ← run_bkl (classic), run_bkl_fenwick (Fenwick, O(log L)), run_bkl_profiled
+  cuda_ensemble.py ← GPU: thread=replica, RNG on-device, float32, stats on-device
+  parallel.py  ← scan_points/scan_grid_gpu/scan_beta_gpu/scan_phase_diagram_gpu
+scripts/       ← run_all_gpu.py (scan), plot_all.py (figures), fig3_plot.py, fig3_extra.py,
+                 fig5_boundaries.py, gen_L200_cpu.py, plot_mft_vs_mc.py, limit_gpu.sh
+tests/         ← must pass (13 tests)
+presentation/  ← slides.tex/pdf (33 frames), notes_ssb_discrepancy.md, findings_presentation.md
+theory/        ← notes, derivations, paper PDF
+results/       ← raw data + figures (gitignored); results/L200/ = L=200 figure set
 ```
+
+### Key Performance Facts (measured)
+- CPU Fenwick: ~4.4M step/s per core; classic BKL ~1.8M/s. Fenwick ~2x classic on CPU too.
+- GPU per-thread: ~35k step/s (BKL serial, latency-bound). GPU wins ONLY via mass
+  parallelism (2048 threads → ~80M/s aggregate).
+- For long equilibration runs (many steps per single trajectory), CPU is ~100x faster
+  than GPU per-thread. For L=200 with ~100 realizations, CPU is 13x faster than GPU.
+- GPU ensemble is best for: phase diagram (many points), P(ρ1,ρ2) ensemble, big statistics.
 
 ### Workflow Rules
 1. Small changes — test before you commit
 2. Verify MFT vs MC at low α,β first (LD phase), then scale up
 3. Keep responses lean — no unnecessary text
 4. Always cite the paper section when referencing results
+5. For L≤1000 single-trajectory runs, prefer CPU (12-core) over GPU
+6. results/ is gitignored — figures are regenerable, don't commit them
 
-### Next Steps (check /todo.md)
+### Next Steps (check /todo.md — has full session handoff)

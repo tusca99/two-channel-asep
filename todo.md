@@ -1,6 +1,35 @@
 # TODO — Two-Channel ASEP
 
-## Current State: Paper Reading Phase
+## Current State (18 Aug 2026) — SESSION HANDOFF
+**Tutto committato e pushato (origin/main). Working tree pulito.**
+
+### Fatto
+- **Kernel**: Fenwick BKL (`run_bkl_fenwick`, O(log L), ~4x classic) + GPU ensemble
+  (`cuda_ensemble.py`, thread=replica, RNG on-device, float32, stats on-device).
+  `model.py` usa Fenwick di default. 13/13 test passano.
+- **Figure L=200** in `results/L200/` (fig2, fig6, fig3 snapshots+anim, ssb, mft_vs_mc).
+  `run_all_gpu.py`/`plot_all.py` parametrizzati con `--L`/`--out`.
+- **fig3**: ensemble GPU, snapshots densi + animazioni 2D/3D (β 0.04→0.95).
+- **fig5**: boundary vs L su CPU (L=200,500,1000) — solo 2 punti validi, abbandonata.
+- **MFT-vs-MC**: boundary teorici verificati (eq 10/13/23/33); deviazione J_MC-J_MFT
+  misurata (max ~0.036). Presentazione Beamer (33 frame) in `presentation/`.
+
+### Scoperte chiave (vedi presentation/notes_ssb_discrepancy.md)
+- SSB a L=1000 è asimmetria LD/LD debole (dense~0.27, non vero HD) → boundary HD/LD
+  del paper non riproducibile.
+- **CPU per-thread 4.4M step/s vs GPU 35k/s** → per run lunghe (equilibrazione) la CPU
+  è 100x meglio; GPU vince solo col parallelismo di massa (phase diagram, ensemble).
+- Per L=200 la CPU è 13x più veloce della GPU per ~100 realizzazioni.
+
+### Prossimo (non fatto)
+- **Convergenza adattiva** (punto 2): fermare la run quando l'osservabile smette di
+  cambiare, invece di correre sempre L³ step. Il guadagno più alto e gratis.
+  (AVX across trajectories = punto 3, ~1.5-2x, secondario.)
+- fig5 a L=200 ha NaN (SSB troppo forte per soglia fissa) — serve soglia adattiva per L.
+- Error bars in fig6 (n_reps già nel codice, serve rerun).
+- Presentazione: aggiungere figure L200, sezione MFT-vs-MC.
+
+## Paper Reading Phase
 - [x] Repo scaffold created (public, uv-based)
 - [x] Basic TwoChannelASEP class (pure Python, Gillespie step) — WORKING
 - [x] Phase scanner (classifies LD/MC/HD-LDD/LD-LDL) — WORKING
