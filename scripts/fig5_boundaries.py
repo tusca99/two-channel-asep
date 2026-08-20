@@ -69,9 +69,24 @@ def _one_replica(args):
                                     uniforms, warmup * 3)
     return (e1 / dt, e2 / dt, np.mean(lane1), np.mean(lane2))
 
+def _n_workers(L, n_steps):
+    """Cap workers by available RAM (each worker buffers ~3*n_steps*8B)."""
+    import os
+    try:
+        with open("/proc/meminfo") as f:
+            free_gb = sum(int(l.split()[1]) for l in f
+                          if l.startswith("MemAvailable")) / 1e6
+    except Exception:
+        free_gb = 8.0
+    per_worker_gb = 3 * n_steps * 8 / 1e9
+    if per_worker_gb <= 0:
+        return 12
+    return max(1, min(12, int(free_gb * 0.8 / per_worker_gb)))
+
+
 def phase_boundary_in_beta(alphas, betas, L, n_steps, warmup, sample_every,
-                           n_reps, seed=0):
-    """For each alpha, classify phases vs beta on CPU (12-core).
+                           n_reps, seed=0, n_workers=None):
+    """For each alpha, classify phases vs beta on CPU (P-cores).
 
     Returns grid[i,j] = (J1s, J2s, rhos1, rhos2) per-replica values for point
     (alphas[i], betas[j])."""
@@ -80,7 +95,11 @@ def phase_boundary_in_beta(alphas, betas, L, n_steps, warmup, sample_every,
     na, nb = len(alphas), len(betas)
     tasks = [(a, b, L, n_steps, warmup, int(rng.integers(1e9)))
              for a in alphas for b in betas for _ in range(n_reps)]
-    with ProcessPoolExecutor(max_workers=12) as ex:
+    if n_workers is None:
+        n_workers = _n_workers(L, n_steps)
+    print(f"  [fig5] L={L} n_steps={n_steps} -> {n_workers} workers",
+          flush=True)
+    with ProcessPoolExecutor(max_workers=n_workers) as ex:
         res = list(ex.map(_one_replica, tasks))
     grid = np.empty((na, nb), dtype=object)
     k = 0
@@ -94,9 +113,9 @@ def phase_boundary_in_beta(alphas, betas, L, n_steps, warmup, sample_every,
 
 
 def phase_boundary_in_alpha(alphas, betas, L, n_steps, warmup, sample_every,
-                            n_reps, seed=0):
+                            n_reps, seed=0, n_workers=None):
     return phase_boundary_in_beta(alphas, betas, L, n_steps, warmup,
-                                  sample_every, n_reps, seed)
+                                  sample_every, n_reps, seed, n_workers)
 
 
 def find_transition(values, labels, target_order):

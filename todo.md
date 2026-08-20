@@ -9,6 +9,39 @@
   `model.py` usa Fenwick di default. 13/13 test passano.
 - **Figure L=200** in `results/L200/` (fig2, fig6, fig3 snapshots+anim, ssb, mft_vs_mc).
   `run_all_gpu.py`/`plot_all.py` parametrizzati con `--L`/`--out`.
+- **Figure L=500**: generate da npz esistenti (fig2/fig3/fig6; no ssb per L500).
+- **Env**: `.venv` rifatto con `uv` (numpy/mpl/scipy/numba/pytest). fig5 CPU
+  ProcessPool: forkserver fallisce se run da `-c`/`/tmp` → va run da script file.
+  Worker count memory-aware (`_n_workers`, L=8000 → 5 per RAM). Pinning CPU
+  con `taskset -c 0-15` (P-core), E-core 16 riservati per l'utente.
+- **Dev box: i7-13700F + RTX 4070 12GB (sm_89)**, GPU ~120-180 Mstep/s. Env
+  rifatto con `uv` (`.venv`, deps numpy/mpl/scipy/numba/pytest).
+- **BIGGER RUN (`scripts/run_bigger.py`, background + .log)**: SSB continuo
+  L=800 e L=2000; fig6 refit L=1000 con budget L-scalato (fix del gap
+  L500 dense~0.75 vs L200~0.92); fig5 boundary L=800/8000; materialize
+  results/L1000. L=8000 per SSB è un sink di tempo (equilibrazione ~L³); va
+  usato per fig5, non per SSB.
+- **fig5 CORRETTO (`scripts/fig5_corrected.py`) — CONFERMA LA TEORIA**: i dati
+  precedenti usavano il classifier PRE-fix (alpha_mcld~0.477 = artifact).
+  Rigenerato con classifier attuale + errori bootstrap (n_boot=200, resample
+  repliche):
+  | L | asym→LD (β) | LD→MC (α) |
+  |---|------------|-----------|
+  | 200 | 0.325±0.024 | 0.705±0.018 |
+  | 500 | 0.301±0.031 | 0.673±0.006 |
+  | 1000 | 0.301±0.027 | 0.640±0.022 |
+  | 2000 | 0.373±0.040 | 0.673±0.013 |
+  | 4000 | 0.301±0.004 | 0.738±0.016 |
+  | 8000 | 0.301±0.043 | nan |
+  LD→MC ≈ **0.67–0.74 = MFT eq10 (2β/(4β−1)=0.667)** ✓. Asym→LD ≈ 0.30–0.37
+  ≈ MFT eq23 (0.332) ✓. L=8000 LD→MC nan e L=2000 asym flicker = soglia SSB
+  noise-floor, non fisica. Output: `results/fig5_corrected/`.
+- **FIG3+SSB L=500 UNIFICATO** (`scripts/unified_alpha09.py` + `reduce_unified.py`):
+  un run continuo α=0.9 copre fig3+ssb (57 betas x 1024 reps, 50k step/site).
+  fig3_points 49/49, ssb_beta* (8), ssb_order_vs_beta.png, animazioni 2D/3D.
+  Budget L-scalato (c=100): fig3+ssb HEAVY, fig2/fig6 LIGHT (3000 step/site).
+  Il bundling fig6 nel fig3 AUMENTEREBBE il tempo totale → tenuto separato
+  (lezione: reuse solo se riduce wall-clock).
 - **fig3**: ensemble GPU, snapshots densi + animazioni 2D/3D (β 0.04→0.95).
 - **fig5**: boundary vs L su CPU (L=200,500,1000) — solo 2 punti validi, abbandonata.
 - **MFT-vs-MC**: boundary teorici verificati (eq 10/13/23/33); deviazione J_MC-J_MFT

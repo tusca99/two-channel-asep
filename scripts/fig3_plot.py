@@ -102,11 +102,12 @@ def save_chunk(path_base, pts, chunk_betas):
 
 
 def key_of(b):
-    """Match b to the saved key with tolerance (keys stored to 4 decimals)."""
+    """Match b to the nearest saved key (keys are stored truncated to 4
+    decimals, so use a loose tolerance)."""
     target = round(float(b), 6)
-    for k in _pts_keys:
-        if abs(k - target) < 1e-4:
-            return k
+    best = min(_pts_keys, key=lambda k: abs(k - target))
+    if abs(best - target) < 5e-4:
+        return best
     raise KeyError(target)
 
 

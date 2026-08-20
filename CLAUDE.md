@@ -34,19 +34,35 @@ results/       ← raw data + figures (gitignored); results/L200/ = L=200 figure
 ```
 
 ### Key Performance Facts (measured)
+- **Dev machine: i7-13700F (16c/24t) + RTX 4070 12GB (sm_89).** Update old
+  2060-era numbers: GPU aggregate ~120-180 Mstep/s (vs 72 on the 2060). Per-thread
+  ~58-60k step/s at L=8000, ~86k at L=2000 (latency-bound Fenwick).
 - CPU Fenwick: ~4.4M step/s per core; classic BKL ~1.8M/s. Fenwick ~2x classic on CPU too.
 - GPU per-thread: ~35k step/s (BKL serial, latency-bound). GPU wins ONLY via mass
   parallelism (2048 threads → ~80M/s aggregate).
 - For long equilibration runs (many steps per single trajectory), CPU is ~100x faster
   than GPU per-thread. For L=200 with ~100 realizations, CPU is 13x faster than GPU.
+- **Equilibration budget must SCALE with L.** A fixed "3000 steps/site" under-
+  equilibrates large L: SSB dense basin needs ~100k steps/site at L=1000 (calibration
+  probe), so L=500 with 3000/site gives dense~0.75 vs L=200's ~0.92 — a systematic
+  bias, not noise. Use steps/site ≈ c·L (c=100 → 100k at L=1000; total ≈ c·L²).
 - GPU ensemble is best for: phase diagram (many points), P(ρ1,ρ2) ensemble, big statistics.
 
 ### Workflow Rules
-1. Small changes — test before you commit
-2. Verify MFT vs MC at low α,β first (LD phase), then scale up
-3. Keep responses lean — no unnecessary text
-4. Always cite the paper section when referencing results
-5. For L≤1000 single-trajectory runs, prefer CPU (12-core) over GPU
-6. results/ is gitignored — figures are regenerable, don't commit them
+1. **Run long MC in the background with a .log; never block on a probe.**
+   Launch with tqdm writing to `results/<tag>.log` (auto-flushed), poll the log
+   periodically instead of blocking on a synchronous call. A hung run is then
+   visible in the log rather than a silent hang; kill with
+   `ps aux | grep <script> | awk '{print $2}' | xargs -r kill -9`.
+2. **Every long run must: (a) tee stdout to `results/<tag>.log` (auto-flush),
+   (b) save progress INCREMENTALLY per unit (per-L / per-chunk) so an early
+   failure never loses completed work, and (c) write a "started/finished"
+   line. Never write the output only at the very end.** If a script doesn't
+   log progress, add logging before launching it.
+3. Verify MFT vs MC at low α,β first (LD phase), then scale up
+4. Keep responses lean — no unnecessary text
+5. Always cite the paper section when referencing results
+6. For L≤1000 single-trajectory runs, prefer CPU (12-core) over GPU
+7. results/ is gitignored — figures are regenerable, don't commit them
 
 ### Next Steps (check /todo.md — has full session handoff)

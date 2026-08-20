@@ -124,16 +124,18 @@ def _pick_move(lane1, lane2, base, alpha, beta, L, site, r):
     return 0, 0, 0, 0
 
 
-@cuda.jit
-def _run_kernel(lane1, lane2, rates, bit, cur1, cur2, tot_time,
-                alpha_arr, beta_arr, L, steps, warmup, states,
-                sample_every, stats_acc, init_lattice):
-    t = cuda.grid(1)
-    if t >= cur1.shape[0]:
-        return
+@cuda.jit(device=True)
+def _advance_replica(lane1, lane2, rates, bit, cur1, cur2, tot_time,
+                     t, alpha, beta, L, steps, warmup, states,
+                     sample_every, stats_acc, init_lattice,
+                     raw_samples, sample_count, capture_raw):
+    """Run one replica's BKL-Fenwick trajectory; shared by the ensemble kernels.
+
+    `raw_samples`/`sample_count` may be passed as zero-length (never None) so
+    numba can type them. If `capture_raw`, each sample also writes (rho1,rho2)
+    into raw_samples[t, s] for high-resolution P(rho1,rho2).
+    """
     base = t * L
-    alpha = alpha_arr[t]
-    beta = beta_arr[t]
 
     # occupancy counters for O(1) bulk-density updates
     n1 = 0
@@ -208,6 +210,16 @@ def _run_kernel(lane1, lane2, rates, bit, cur1, cur2, tot_time,
         # accumulate bulk-density statistics on-device (O(1) per sample)
         if (sample_every > 0 and step >= warmup
                 and (step - warmup) % sample_every == 0):
+            # Recompute occupancy DIRECTLY from the lattice at each sample.
+            # The running integer counters n1/n2 can drift from the true
+            # occupancy over very long runs (seen as rho2<0 or >1 at L=1000),
+            # so we don't trust them for the density: sum the lattice instead.
+            # O(L) per sample is negligible vs ~1e5 steps between samples.
+            n1 = 0
+            n2 = 0
+            for i in range(L):
+                n1 += lane1[base + i]
+                n2 += lane2[base + i]
             r1 = n1 / L
             r2 = n2 / L
             d = r1 - r2
@@ -224,13 +236,38 @@ def _run_kernel(lane1, lane2, rates, bit, cur1, cur2, tot_time,
             stats_acc[t * 8 + 6] += mn
             stats_acc[t * 8 + 7] += 1.0
 
+            if capture_raw:
+                s = sample_count[t]
+                if s < raw_samples.shape[1]:
+                    raw_samples[t, s, 0] = r1
+                    raw_samples[t, s, 1] = r2
+                    sample_count[t] = s + 1
+
     tot_time[t] = ttime
     cur1[t] = c1
     cur2[t] = c2
 
 
+@cuda.jit
+def _run_kernel(lane1, lane2, rates, bit, cur1, cur2, tot_time,
+                alpha_arr, beta_arr, L, steps, warmup, states,
+                sample_every, stats_acc, init_lattice,
+                raw_samples, sample_count):
+    t = cuda.grid(1)
+    if t >= cur1.shape[0]:
+        return
+    alpha = alpha_arr[t]
+    beta = beta_arr[t]
+    _advance_replica(lane1, lane2, rates, bit, cur1, cur2, tot_time,
+                     t, alpha, beta, L, steps, warmup, states,
+                     sample_every, stats_acc, init_lattice,
+                     raw_samples, sample_count,
+                     raw_samples.shape[1] > 0)
+
+
 def run_ensemble_cuda(alpha, beta, L, steps, n_replicas, seed=0, block=256,
-                      sample_every=0, warmup=0, alphas=None, betas=None):
+                      sample_every=0, warmup=0, alphas=None, betas=None,
+                      n_raw_samples=0):
     """
     Run n_replicas independent ASEP BKL-Fenwick sims on GPU (replica-major).
 
@@ -282,9 +319,18 @@ def run_ensemble_cuda(alpha, beta, L, steps, n_replicas, seed=0, block=256,
     states = create_xoroshiro128p_states(nrep, seed=seed)
 
     grid = (nrep + block - 1) // block
+    if n_raw_samples > 0:
+        raw_samples = cuda.device_array((nrep, n_raw_samples, 2),
+                                        dtype=np.float64)
+        sample_count = cuda.device_array(nrep, dtype=np.int32)
+        sample_count[:] = 0
+    else:
+        raw_samples = cuda.device_array((nrep, 0, 2), dtype=np.float64)
+        sample_count = cuda.device_array(nrep, dtype=np.int32)
     _run_kernel[grid, block](lane1, lane2, rates, bit, cur1, cur2, ttime,
                              alpha_d, beta_d, L, steps, warmup, states,
-                             sample_every, stats, True)
+                             sample_every, stats, True,
+                             raw_samples, sample_count)
     cuda.synchronize()
 
     c1 = cur1.copy_to_host()
@@ -318,10 +364,13 @@ def run_ensemble_cuda(alpha, beta, L, steps, n_replicas, seed=0, block=256,
         out["dense"] = dense
         out["dilute"] = dilute
         out["n_samples"] = ns.astype(np.int64)
+    if n_raw_samples > 0:
+        out["raw_samples"] = raw_samples.copy_to_host()  # (nrep, nsamp, 2)
+        out["sample_count"] = sample_count.copy_to_host()
     return out
 
 
-def run_ensemble_cuda_continue(L, n_replicas, seed=0, block=256):
+def run_ensemble_cuda_continue(L, n_replicas, seed=0, block=256, n_raw_samples=0):
     """
     Create a persistent GPU ensemble state for continuous (multi-chunk) runs.
 
@@ -354,12 +403,23 @@ def run_ensemble_cuda_continue(L, n_replicas, seed=0, block=256):
     states = create_xoroshiro128p_states(nrep, seed=seed)
     alpha_d = cuda.to_device(np.full(nrep, 0.9, dtype=np.float64))
     beta_d = cuda.to_device(np.full(nrep, 0.1, dtype=np.float64))
+    if n_raw_samples > 0:
+        raw_samples = cuda.device_array((nrep, n_raw_samples, 2),
+                                        dtype=np.float64)
+        sample_count = cuda.device_array(nrep, dtype=np.int32)
+        sample_count[:] = 0
+    else:
+        raw_samples = cuda.device_array((nrep, 0, 2), dtype=np.float64)
+        sample_count = cuda.device_array(nrep, dtype=np.int32)
+    n_raw_samples_store = int(n_raw_samples)
 
     state = {
         "L": L, "nrep": nrep, "block": block,
         "lane1": lane1, "lane2": lane2, "rates": rates, "bit": bit,
         "cur1": cur1, "cur2": cur2, "ttime": ttime, "stats": stats,
         "states": states, "alpha_d": alpha_d, "beta_d": beta_d,
+        "raw_samples": raw_samples, "sample_count": sample_count,
+        "n_raw_samples": n_raw_samples_store,
     }
     state["advance"] = lambda steps, warmup=0, sample_every=0: _advance(
         state, steps, warmup, sample_every)
@@ -384,12 +444,16 @@ def _advance(state, steps, warmup=0, sample_every=0):
     cur1 = state["cur1"]; cur2 = state["cur2"]; ttime = state["ttime"]
     stats = state["stats"]; states = state["states"]
     alpha_d = state["alpha_d"]; beta_d = state["beta_d"]
+    raw_samples = state["raw_samples"]
+    sample_count = state["sample_count"]
+    n_raw_samples = state.get("n_raw_samples", 0)
 
     init = not state.get("_initialized", False)
     grid = (nrep + block - 1) // block
     _run_kernel[grid, block](lane1, lane2, rates, bit, cur1, cur2, ttime,
                              alpha_d, beta_d, L, steps, warmup, states,
-                             sample_every, stats, init)
+                             sample_every, stats, init,
+                             raw_samples, sample_count)
     cuda.synchronize()
     state["_initialized"] = True
 
@@ -419,4 +483,7 @@ def _advance(state, steps, warmup=0, sample_every=0):
         out["std_diff"] = std_diff; out["dense"] = dense
         out["dilute"] = dilute
         out["n_samples"] = ns.astype(np.int64)
+    if n_raw_samples > 0:
+        out["raw_samples"] = raw_samples.copy_to_host()  # (nrep, nsamp, 2)
+        out["sample_count"] = sample_count.copy_to_host()
     return out

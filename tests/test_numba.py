@@ -348,6 +348,74 @@ def test_gpu_matches_python_reference(alpha, beta):
     assert abs(py[1] - J2g) < 0.04
 
 
+@pytest.mark.skipif(not _cuda_available(), reason="CUDA GPU not available")
+def test_gpu_density_bounds_L1000():
+    """REGRESSION: per-sample densities must stay in [0,1] on the GPU.
+
+    Guards against the occupancy-counter drift that made rho2 go negative or
+    >1 at L=1000 in long runs (the running integer counter n2 diverged from
+    the true lattice occupancy). The fix recomputes occupancy from the lattice
+    at each sample. Any per-replica rho1 or rho2 outside [0,1] is a bug.
+    """
+    from asep.cuda_ensemble import run_ensemble_cuda
+    L = 1000
+    alpha, beta = 0.9, 0.05
+    nrep = 16
+    out = run_ensemble_cuda(alpha, beta, L, L * 20000, nrep, seed=0,
+                            sample_every=200, warmup=L * 4000,
+                            n_raw_samples=200)
+    assert "raw_samples" in out
+    raw = out["raw_samples"]          # (nrep, nsamp, 2)
+    sc = out["sample_count"]
+    for i in range(nrep):
+        n = int(sc[i])
+        pts = raw[i, :n]
+        r1 = pts[:, 0]; r2 = pts[:, 1]
+        assert np.all((r1 >= 0) & (r1 <= 1)), f"rho1 outside [0,1] in rep {i}"
+        assert np.all((r2 >= 0) & (r2 <= 1)), f"rho2 outside [0,1] in rep {i}"
+
+
+@pytest.mark.skipif(not _cuda_available(), reason="CUDA GPU not available")
+def test_gpu_density_equals_lattice_occupancy():
+    """PHYSICS: reported per-replica density must match the actual lattice
+    occupancy (sum(lane)/L) at the end of a run. Guards the density observable
+    against any counter/lattice desync."""
+    from asep.cuda_ensemble import run_ensemble_cuda_continue
+    from numba import cuda
+    L = 1000
+    nrep = 32
+    state = run_ensemble_cuda_continue(L, nrep, seed=0)
+    state["alpha_d"] = cuda.to_device(np.full(nrep, 0.9))
+    state["beta_d"] = cuda.to_device(np.full(nrep, 0.05))
+    state["advance"](L * 10000, warmup=0, sample_every=0)   # warmup
+    res = state["advance"](L * 10000, warmup=0, sample_every=200)
+    l1 = state["lane1"].copy_to_host().reshape(nrep, L)
+    l2 = state["lane2"].copy_to_host().reshape(nrep, L)
+    n1t = l1.sum(1) / L
+    n2t = l2.sum(1) / L
+    # final sample of each replica should match the instantaneous lattice
+    assert np.allclose(res["rho1"], n1t, atol=0.05), "rho1 != occupancy"
+    assert np.allclose(res["rho2"], n2t, atol=0.05), "rho2 != occupancy"
+
+
+@pytest.mark.skipif(not _cuda_available(), reason="CUDA GPU not available")
+def test_gpu_conservation_and_symmetry():
+    """PHYSICS (TASEP): (1) total particle number per lane is conserved up to
+    injection/exit, so rho1+rho2 bounds hold; (2) at symmetric alpha=beta, the
+    two lanes are statistically symmetric (J1~J2, rho1~rho2)."""
+    from asep.cuda_ensemble import run_ensemble_cuda
+    L = 400
+    nrep = 512
+    # symmetric point
+    out = run_ensemble_cuda(0.5, 0.5, L, L * 10000, nrep, seed=0,
+                            sample_every=400, warmup=L * 2000)
+    J1, J2 = out["cur1"] / out["ttime"], out["cur2"] / out["ttime"]
+    r1, r2 = out["rho1"], out["rho2"]
+    # symmetric: channels should agree within statistical error
+    assert abs(np.mean(J1) - np.mean(J2)) < 0.03, "J1!=J2 at symmetric alpha=beta"
+    assert abs(np.mean(r1) - np.mean(r2)) < 0.1, "rho1!=rho2 at symmetric alpha=beta"
+
+
 if __name__ == "__main__":
     for a, b in [(0.2, 0.8), (0.9, 0.9)]:
         py = _obs_py(a, b, 100, 200000, 20000, 200, 42)
