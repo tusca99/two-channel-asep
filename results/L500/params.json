@@ -1,0 +1,22 @@
+{
+  "L": 500,
+  "alpha": 0.9,
+  "backend": "GPU run_ensemble_cuda_continue (continuous trajectory)",
+  "bins": 48,
+  "chunk_steps": 10000000,
+  "figure": "fig3_P_rho1_rho2 (unified with ssb)",
+  "nchunks": 2,
+  "nrep_per_beta": 1024,
+  "sample_every": 5000,
+  "ssb_betas": [
+    0.05,
+    0.08,
+    0.1,
+    0.12,
+    0.15,
+    0.2,
+    0.25,
+    0.3
+  ],
+  "steps_per_site": 50000
+}

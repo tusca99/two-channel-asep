@@ -4,6 +4,9 @@ __pycache__/
 #results/
 *.h5
 *.npy
+# intermediate per-chunk MC data (derivable; keep repo lean)
+results/**/chunk*_beta*.npz
+results/**/fig3_points.npz.chunks.npz
 .pytest_cache/
 .venv/
 *.egg-info/
