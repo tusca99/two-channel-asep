@@ -1,7 +1,35 @@
 # TODO — Two-Channel ASEP
 
-## Current State (18 Aug 2026) — SESSION HANDOFF
-**Tutto committato e pushato (origin/main). Working tree pulito.**
+## Current State (21 Aug 2026) — SESSION HANDOFF
+**Da finire domani: fig5 L4000/8000 sta ancora girando in background.**
+
+### Fatto in questa sessione (commit 0dc7705, 921e876, 7794fb9)
+- **Fix bug densità GPU**: i contatori n1/n2 driftavano dalla lattice a L=1000
+  (rho2 negativo/>1). Ora ricalcola occupanza dalla lattice a ogni sample.
+  Test fisici aggiunti (19→20 pass).
+- **Fix classifier HD/LD**: std(rho1-rho2) era ~0 per replica bloccata in un
+  basin → HD/LD mai rilevato. Ora usa dense=max(rho1,rho2)>0.5. I phase
+  diagram mostrano la regione rotta: L200 (86 HD/LD+82 LD/HD), L500 (86+85),
+  L1000 (96+73). Prima era 0.
+- **fig5_corrected** con budget L-scalato (~20*L steps/site) per il boundary
+  beta (HD/LD→LD/LD): L200-2000 → β≈0.253, matching paper ~0.26-0.28.
+  Alpha (LD→MC) ≈0.673. **L4000/8000 ancora in esecuzione (heavy).**
+- **fig3**: artifact a β~0.22 = repliche finite che cadono tutte in un basin
+  (non un bug); fig3 non usa classifier, è già valida.
+- **Chunks L1000** spostati in `results/L1000/chunks/` (gitignored).
+- **TeeLog** ora cattura anche stderr (tqdm visibile nei log).
+
+### Prossimo
+- [ ] Quando fig5 finisce: commit `results/fig5_corrected/fig5_boundaries_corrected.npz`
+  (dovrebbe avere L4000/8000 beta_asym validi, ~0.253)
+- [ ] Plot finali phase diagram L200/L500/L1000 (già generati, verificare HD/LD)
+- [ ] Verificare che il classifier sia corretto (l'utente dubita di blocchi
+      sopra/sotto soglia) — confronto con eq MFT alpha/(1+alpha+alpha^2)
+- [ ] Commit risultati + cleanup (debug_fig5_beta.py)
+
+### Note
+- fig5 in background: `ps aux | grep fig5_corrected`, npz in results/fig5_corrected/
+- Kill con `ps aux | grep fig5_corrected | awk '{print $2}' | xargs -r kill -9`
 
 ### Fatto
 - **Kernel**: Fenwick BKL (`run_bkl_fenwick`, O(log L), ~4x classic) + GPU ensemble
