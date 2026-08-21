@@ -32,7 +32,8 @@ def beta_of(fname):
 
 
 def group_chunks(out_dir):
-    files = sorted(glob.glob(os.path.join(out_dir, "chunk*_beta*.npz")),
+    files = sorted(glob.glob(os.path.join(out_dir, "chunks", "chunk*_beta*.npz")) +
+                   glob.glob(os.path.join(out_dir, "chunk*_beta*.npz")),
                    key=lambda f: os.path.basename(f))
     by_beta = {}
     for f in files:

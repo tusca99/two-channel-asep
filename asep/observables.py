@@ -53,8 +53,22 @@ def classify_phase(J1, J2, rho1, rho2, alpha, beta, L,
     if samples is not None and len(samples) > 0:
         d = samples[:, 0] - samples[:, 1]
         asymmetry = d.std()
+        # Per-replica dense/dilute. Each replica is (typically) stuck in ONE
+        # broken basin (dense-in-1 OR dense-in-2) on the run timescale, so the
+        # correct SSB measure is per-replica dense=max(rho1,rho2). Averaging
+        # rho1 and rho2 across replicas washes out to ~1/2 and loses HD/LD.
+        dense_per_rep = np.maximum(samples[:, 0], samples[:, 1])
+        dilute_per_rep = np.minimum(samples[:, 0], samples[:, 1])
+        dense_mean = dense_per_rep.mean()
+        dilute_mean = dilute_per_rep.mean()
+        dense_side_is_1 = samples[:, 0].mean() > samples[:, 1].mean()
     else:
         asymmetry = abs(rho1 - rho2)
+        dense_per_rep = None
+        dilute_per_rep = None
+        dense_mean = max(rho1, rho2)
+        dilute_mean = min(rho1, rho2)
+        dense_side_is_1 = rho1 > rho2
 
     rho_avg = (rho1 + rho2) / 2
 
@@ -63,23 +77,29 @@ def classify_phase(J1, J2, rho1, rho2, alpha, beta, L,
     j_cur = j_current if j_current is not None else 0.25
     j_sat = (J1 + J2) / 2 >= j_cur - mc_tol
 
-    if asymmetry < asym_threshold:
+    # SSB detection. For the phase diagram (samples given, each row a
+    # per-replica time-average), a broken point has reps split between the two
+    # basins -> std(rho1-rho2) large. For a long single-replica run the
+    # per-replica std would be ~0 (stuck in one basin), but |dense-dilute| is
+    # large; fall back on that so HD/LD is still found.
+    asym_robust = asymmetry
+    if dense_per_rep is not None and asymmetry < asym_threshold:
+        asym_robust = abs(dense_mean - dilute_mean)
+
+    if asym_robust < asym_threshold:
         # Symmetric phase
         if j_sat and rho_avg > mc_rho:
             return "MC", asymmetry
         return "LD", asymmetry
 
-    # Asymmetric phase: which channel is denser?
-    # HD/LD: the dense channel has rho ~ 1-beta (> 1/2); LD/LD: both low.
+    # Asymmetric phase: HD/LD if the dense channel is genuinely high (rho>1/2),
+    # LD/LD if both channels are low-density (weak asymmetry).
     rho_hd_theory = 1 - beta
-    if rho1 > rho2:
-        if rho1 > 0.5 and abs(rho1 - rho_hd_theory) < 0.25:
+    if dense_mean > 0.5 and abs(dense_mean - rho_hd_theory) < 0.25:
+        if dense_side_is_1:
             return "HD/LD", asymmetry
-        return "LD/LD", asymmetry
-    else:
-        if rho2 > 0.5 and abs(rho2 - rho_hd_theory) < 0.25:
-            return "LD/HD", asymmetry
-        return "LD/LD", asymmetry
+        return "LD/HD", asymmetry
+    return "LD/LD", asymmetry
 
 
 def classify_phase_simple(rho1, rho2, J1, J2, alpha, beta, L):

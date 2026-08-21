@@ -40,7 +40,8 @@ def group_chunks(out_dir):
     Chunk files store beta truncated to 4 decimals (int(b*10000)), so keys
     are matched by the same truncation.
     """
-    files = sorted(glob.glob(os.path.join(out_dir, "chunk*_beta*.npz")),
+    files = sorted(glob.glob(os.path.join(out_dir, "chunks", "chunk*_beta*.npz")) +
+                   glob.glob(os.path.join(out_dir, "chunk*_beta*.npz")),
                    key=lambda f: os.path.basename(f))
     by_beta = {}
     for f in files:

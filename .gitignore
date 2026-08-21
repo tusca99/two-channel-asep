@@ -5,6 +5,7 @@ __pycache__/
 *.h5
 *.npy
 # intermediate per-chunk MC data (derivable; keep repo lean)
+results/**/chunks/*_beta*.npz
 results/**/chunk*_beta*.npz
 results/**/fig3_points.npz.chunks.npz
 .pytest_cache/

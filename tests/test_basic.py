@@ -5,6 +5,35 @@ import numpy as np
 from asep import TwoChannelASEP
 
 
+def test_classify_phase_hd_ld():
+    """REGRESSION: the ensemble phase classifier must recover HD/LD.
+
+    The bug: each replica is stuck in ONE broken basin, so its own
+    std(rho1-rho2) is ~0 (constant difference ~0.8). The old code used that
+    std -> classified everything as symmetric LD, so NO phase diagram ever
+    showed the HD/LD (or LD/HD) transition. The fix uses per-replica
+    dense=max(rho1,rho2); mean_dense>1/2 -> HD/LD.
+    """
+    from asep.observables import classify_phase
+    # two reps dense-in-1, two dense-in-2 (alpha=0.9, beta=0.1, L=1000)
+    samples = np.array([[0.87, 0.06], [0.88, 0.05], [0.06, 0.87], [0.05, 0.88]])
+    lab, asym = classify_phase(0.04, 0.04, 0.47, 0.47, 0.9, 0.1, 1000,
+                               samples=samples, j_current=0.25)
+    assert lab in ("HD/LD", "LD/HD"), f"expected HD/LD, got {lab}"
+
+    # LD: symmetric low density
+    s2 = np.full((4, 2), 0.2)
+    lab2, _ = classify_phase(0.15, 0.15, 0.2, 0.2, 0.5, 0.5, 1000,
+                             samples=s2, j_current=0.25)
+    assert lab2 == "LD"
+
+    # MC: symmetric high + current saturated
+    s3 = np.full((4, 2), 0.5)
+    lab3, _ = classify_phase(0.25, 0.25, 0.5, 0.5, 1.0, 1.0, 1000,
+                             samples=s3, j_current=0.25)
+    assert lab3 == "MC"
+
+
 def test_ld_phase():
     """In LD phase (α < β, α < 0.5), current should be ~α(1-α)."""
     sim = TwoChannelASEP(L=100, alpha=0.2, beta=0.8, seed=42)

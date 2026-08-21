@@ -42,16 +42,25 @@ OUT = os.path.join(ROOT, "results", "fig5_corrected")
 
 
 def find_asym(r1s, r2s, J1s, J2s, betas, L):
-    """Return the beta where labels last leave 'asym' -> LD, plus labels."""
+    """Return the beta where the HD/LD (or LD/HD) broken state ends -> LD/LD/LD.
+
+    This is the paper Fig5(a) LEFT boundary: the HD/LD phase is bounded at
+    beta by the transition to LD/LD (or LD). Tracks the last beta whose label
+    is HD/LD or LD/HD, then the boundary is just past it.
+    """
     labels = []
     for j in range(len(betas)):
         lab, _ = classify_point(r1s[j], r2s[j], J1s[j], J2s[j], ALPHA, betas[j], L)
         labels.append(lab)
     labels = _smooth_labels(labels)
+    # last index still in a broken HD/LD-like state
+    last_broken = None
+    for j in range(len(betas)):
+        if labels[j] in ("HD/LD", "LD/HD"):
+            last_broken = j
     tr = None
-    for j in range(1, len(betas)):
-        if labels[j - 1] != "LD" and labels[j] == "LD":
-            tr = 0.5 * (betas[j - 1] + betas[j])
+    if last_broken is not None and last_broken < len(betas) - 1:
+        tr = 0.5 * (betas[last_broken] + betas[last_broken + 1])
     return tr, labels
 
 
@@ -71,24 +80,34 @@ def find_mcld(r1s, r2s, J1s, J2s, alphas, L):
 
 
 def run_one_L(L, n_reps, n_boot=200):
-    """Compute both boundaries + bootstrap errors for one L."""
-    steps = int(L * 1e4)
-    nw = _n_workers(L, steps)
+    """Compute both boundaries + bootstrap errors for one L.
+
+    The beta boundary (HD/LD->LD/LD) needs DEEP SSB equilibration to reach the
+    dense basin at large L: a fixed steps=L*1e4 under-equilibrates L>=2000
+    (dense stuck <0.5 -> no HD/LD found -> NaN). Use an L-scaled budget
+    (steps/site ~ 20*L, c=20 -> 100k at L=5000) for the beta scan. The alpha
+    (LD->MC) scan is current-saturation based and equilibrates fast, so it can
+    keep a lighter budget.
+    """
+    nw = _n_workers(L, int(L*1e4))
     betas = np.linspace(0.05, 0.6, 24)
     alphas = np.linspace(0.2, 0.95, 24)
 
-    # (a) asym->LD, alpha=0.9
-    grid = phase_boundary_in_beta([ALPHA], betas, L, steps, 1_000_000, 200,
-                                  n_reps, n_workers=nw)
+    # (a) asym->LD, alpha=0.9 : L-scaled budget to reach HD/LD basin
+    beta_steps = int(L * max(20 * L, 1e4))     # ~20*L steps/site, c=20
+    beta_warmup = int(beta_steps // 5)
+    grid = phase_boundary_in_beta([ALPHA], betas, L, beta_steps, beta_warmup, 200,
+                                  n_reps, n_workers=_n_workers(L, beta_steps))
     r1s = np.array([grid[0][j][2] for j in range(len(betas))])
     r2s = np.array([grid[0][j][3] for j in range(len(betas))])
     J1s = np.array([grid[0][j][0] for j in range(len(betas))])
     J2s = np.array([grid[0][j][1] for j in range(len(betas))])
     asym, labels_a = find_asym(r1s, r2s, J1s, J2s, betas, L)
 
-    # (b) LD->MC, beta=1.0
-    grid2 = phase_boundary_in_alpha(alphas, [BETA_MC], L, steps, 1_000_000, 50,
-                                    n_reps, n_workers=nw)
+    # (b) LD->MC, beta=1.0 : lighter budget (current-based, fast equilibration)
+    alpha_steps = int(L * 2e4)
+    grid2 = phase_boundary_in_alpha(alphas, [BETA_MC], L, alpha_steps, int(alpha_steps//5), 50,
+                                    n_reps, n_workers=_n_workers(L, alpha_steps))
     r1a = np.array([grid2[i][0][2] for i in range(len(alphas))])
     r2a = np.array([grid2[i][0][3] for i in range(len(alphas))])
     J1a = np.array([grid2[i][0][0] for i in range(len(alphas))])

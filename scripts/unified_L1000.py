@@ -41,15 +41,20 @@ def steps_per_site(L):
 
 
 class TeeLog:
+    """Tee BOTH stdout and stderr to a log file (tqdm writes to stderr)."""
     def __init__(self, path):
         self.f = open(path, "a", buffering=1)
-        self._orig = sys.stdout
+        self._out = sys.stdout
+        self._err = sys.stderr
+        sys.stdout = self
+        sys.stderr = self
 
     def write(self, s):
-        self.f.write(s); self.f.flush(); self._orig.write(s)
+        self.f.write(s); self.f.flush()
+        self._out.write(s); self._out.flush()
 
     def flush(self):
-        self.f.flush(); self._orig.flush()
+        self.f.flush(); self._out.flush(); self._err.flush()
 
 
 def unified_L1000(L, out_dir, nrep_per_beta=128, sample_every=100000,

@@ -29,32 +29,41 @@ from asep.parallel import scan_grid_gpu  # noqa: F401  (kept for reference)
 def classify_point(rhos1, rhos2, J1, J2, alpha, beta, L, mc_rho=0.45):
     """Classify phase from per-replica densities + currents (ensemble method).
 
-    Uses std(rho1-rho2) as the robust SSB order parameter. Our model shows a
-    WEAK asymmetry (dense~0.27, not a true HD with rho>0.5), so we classify
-    by symmetry rather than by the paper's HD/LD criterion:
-      - asymmetric (std_diff > threshold): LD/LD-type broken state
-      - symmetric low density: LD
-      - symmetric high density: MC
+    Distinguishes the broken-symmetry HD/LD from LD/LD using per-replica
+    dense=max(rho1,rho2). The old code lumped all asymmetric states as a
+    generic 'asym', conflating the paper's two distinct boundaries
+    (HD/LD->LD/LD and LD/LD->LD) into one — that's why the left panel did not
+    match the paper.
 
-    MC is identified by current saturation (paper Fig 4 method): J plateaus at
-    1/4 in MC. Combined with a high density (mc_rho=0.45, near the MC rho=1/2)
-    this locates the LD/MC boundary correctly (a fixed low threshold misplaces
-    it — the L~0.477 vs paper ~0.7 discrepancy was a threshold artifact).
-
-    The SSB threshold is L-adaptive: the noise floor of std(rho1-rho2) in the
-    symmetric phase scales as ~1/sqrt(L), so a fixed threshold over-classifies
-    small L as asymmetric (the L=200 NaN bug). Calibrate 0.04 at L=1000.
+    Labels:
+      HD/LD or LD/HD : mean_dense > 1/2 (one channel genuinely high-density)
+      LD/LD          : asymmetric but both channels low-density
+      MC             : current-saturated (J~1/4) + high density
+      LD             : symmetric low density
     """
     d = np.array(rhos1) - np.array(rhos2)
     asym = d.std()
+    # per-replica dense/dilute: SSB shows up here, not in std(rho1-rho2) which
+    # is ~0 when each replica is stuck in one basin.
+    dense_per_rep = np.maximum(np.array(rhos1), np.array(rhos2))
+    dilute_per_rep = np.minimum(np.array(rhos1), np.array(rhos2))
+    dense_mean = np.mean(dense_per_rep)
     rho_avg = (np.mean(rhos1) + np.mean(rhos2)) / 2
     asym_threshold = 0.04 * np.sqrt(1000.0 / L)
     j_cur = (np.mean(J1) + np.mean(J2)) / 2
+
     if asym < asym_threshold:
+        # symmetric: MC by current saturation, else LD
         if j_cur >= 0.25 - 0.02 and rho_avg > mc_rho:
             return "MC", asym
         return "LD", asym
-    return "asym", asym
+
+    # asymmetric: HD/LD if one channel is genuinely dense, else LD/LD
+    if dense_mean > 0.5 and abs(dense_mean - (1 - beta)) < 0.25:
+        if np.mean(rhos1) > np.mean(rhos2):
+            return "HD/LD", asym
+        return "LD/HD", asym
+    return "LD/LD", asym
 
 
 def _one_replica(args):
