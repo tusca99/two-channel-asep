@@ -31,10 +31,12 @@ sys.path.insert(0, ROOT)
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 from scripts.fig5_boundaries import (classify_point, phase_boundary_in_beta,
                                      phase_boundary_in_alpha, _n_workers,
                                      _smooth_labels)
+from scripts.remake_L import TeeLog
 
 ALPHA = 0.9
 BETA_MC = 1.0
@@ -156,15 +158,19 @@ def main():
     ap.add_argument("--n_boot", type=int, default=200)
     args = ap.parse_args()
     os.makedirs(OUT, exist_ok=True)
+    # tee stdout+stderr -> results/fig5_corrected.log (tqdm visible)
+    sys.stdout = TeeLog(os.path.join(ROOT, "results", "fig5_corrected.log"))
 
     Ls = np.array(args.Ls)
     asym = np.full(len(Ls), np.nan)
     e_asym = np.full(len(Ls), np.nan)
     mcld = np.full(len(Ls), np.nan)
     e_mcld = np.full(len(Ls), np.nan)
+    theory_hdld = ALPHA / (1 + ALPHA + ALPHA**2)
+    theory_mc = 2 * BETA_MC / (4 * BETA_MC - 1)
 
     # incremental: save after each L so an early failure keeps completed work
-    for i, L in enumerate(Ls):
+    for i, L in enumerate(tqdm(Ls, desc="fig5 Ls")):
         a, ea, m, em = run_one_L(L, args.n_reps, args.n_boot)
         asym[i], e_asym[i], mcld[i], e_mcld[i] = a, ea, m, em
         _save_progress(OUT, Ls[:i + 1], asym[:i + 1], e_asym[:i + 1],

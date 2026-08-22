@@ -66,31 +66,44 @@ def classify_point(rhos1, rhos2, J1, J2, alpha, beta, L, mc_rho=0.45):
     return "LD/LD", asym
 
 
+_UNIFORM_CHUNK = 1_000_000   # 1M steps worth of uniforms per chunk (~24 MB)
+
+
+def _run_chunked(lane1, lane2, alpha, beta, total, rng, u_idx):
+    """Run `total` BKL steps in uniform chunks (bounded memory), streaming the
+    RNG so a huge (steps+warmup)*3 pre-alloc never happens. Returns
+    (total_time, n_exit1, n_exit2, new_u_idx)."""
+    from asep.bkl import run_bkl_fenwick
+    t = 0.0; c1 = 0; c2 = 0
+    remaining = total
+    while remaining > 0:
+        n = min(remaining, _UNIFORM_CHUNK)
+        uniforms = rng.random(n * 3)
+        dt, e1, e2, u_idx = run_bkl_fenwick(lane1, lane2, alpha, beta,
+                                            n, uniforms, u_idx)
+        t += dt; c1 += e1; c2 += e2
+        remaining -= n
+    return t, c1, c2, u_idx
+
+
 def _one_replica(args):
     alpha, beta, L, steps, warmup, seed = args
-    from asep.bkl import run_bkl_fenwick
     rng = np.random.default_rng(seed)
     lane1 = (rng.random(L) < 0.4).astype(np.int8)
     lane2 = (rng.random(L) < 0.4).astype(np.int8)
-    uniforms = rng.random((steps + warmup) * 3)
-    run_bkl_fenwick(lane1, lane2, alpha, beta, warmup, uniforms, 0)
-    dt, e1, e2, _ = run_bkl_fenwick(lane1, lane2, alpha, beta, steps,
-                                    uniforms, warmup * 3)
+    # stream uniforms in chunks -> bounded memory regardless of L/steps
+    _run_chunked(lane1, lane2, alpha, beta, warmup, rng, 0)
+    dt, e1, e2, _ = _run_chunked(lane1, lane2, alpha, beta, steps, rng, 0)
     return (e1 / dt, e2 / dt, np.mean(lane1), np.mean(lane2))
 
 def _n_workers(L, n_steps):
-    """Cap workers by available RAM (each worker buffers ~3*n_steps*8B)."""
+    """Cap workers by available RAM. Each worker now STREAMS uniforms in
+    ~24MB chunks (see _run_chunked), so memory is not steps-proportional;
+    return the core count (capped) instead of a steps-derived count."""
     import os
-    try:
-        with open("/proc/meminfo") as f:
-            free_gb = sum(int(l.split()[1]) for l in f
-                          if l.startswith("MemAvailable")) / 1e6
-    except Exception:
-        free_gb = 8.0
-    per_worker_gb = 3 * n_steps * 8 / 1e9
-    if per_worker_gb <= 0:
-        return 12
-    return max(1, min(12, int(free_gb * 0.8 / per_worker_gb)))
+    n_cores = os.cpu_count() or 8
+    # leave a few cores for the OS/other jobs
+    return max(1, int(n_cores * 0.8))
 
 
 def phase_boundary_in_beta(alphas, betas, L, n_steps, warmup, sample_every,
