@@ -1,190 +1,30 @@
 # TODO — Two-Channel ASEP
 
-## Current State (21 Aug 2026) — SESSION HANDOFF
-**Da finire domani: fig5 L4000/8000 sta ancora girando in background.**
+## Current State (23 Aug 2026) — READY FOR PUSH & PRESENTATION 2nd HALF
+**Revise done, 4h window used, all high-budget runs with 30 workers, CPU only (no GPU overflow).**
 
-### Fatto in questa sessione (commit 0dc7705, 921e876, 7794fb9)
-- **Fix bug densità GPU**: i contatori n1/n2 driftavano dalla lattice a L=1000
-  (rho2 negativo/>1). Ora ricalcola occupanza dalla lattice a ogni sample.
-  Test fisici aggiunti (19→20 pass).
-- **Fix classifier HD/LD**: std(rho1-rho2) era ~0 per replica bloccata in un
-  basin → HD/LD mai rilevato. Ora usa dense=max(rho1,rho2)>0.5. I phase
-  diagram mostrano la regione rotta: L200 (86 HD/LD+82 LD/HD), L500 (86+85),
-  L1000 (96+73). Prima era 0.
-- **fig5_corrected** con budget L-scalato (~20*L steps/site) per il boundary
-  beta (HD/LD→LD/LD): L200-2000 → β≈0.253, matching paper ~0.26-0.28.
-  Alpha (LD→MC) ≈0.673. **L4000/8000 ancora in esecuzione (heavy).**
-- **fig3**: artifact a β~0.22 = repliche finite che cadono tutte in un basin
-  (non un bug); fig3 non usa classifier, è già valida.
-- **Chunks L1000** spostati in `results/L1000/chunks/` (gitignored).
-- **TeeLog** ora cattura anche stderr (tqdm visibile nei log).
+### Done in this revise (23 Aug, commits 8170bfb, a76974c, a50c805, 67b0df5)
+- **fig5** `scatter` `o`/`s` `ls="none"` `set_xticks(Ls)` `NullLocator` — no overlapping `2×10²` ticks, no misleading line (`scripts/fig5_corrected.py:183` `results/fig5_corrected/fig5_phase_boundary_vs_L.png:1` `69K`)
+- **fig5 variant left** `α=0.9` both `β` boundaries vs `L` `50k/site` `16` `6` `L` (`200,500,1000,2000,4000,8000`) `results/fig5_variant_left/fig5a_*.png:1` `17:10` — `hdld [0.253×4,0.229,0.182]` `ldl [0.421,0.373,0.397,0.325,0.325,0.349]` `ylim 0.15-0.45` all visible (large `L` drift `c=50` vs needed `c=100` for `L8000` — note in log)
+- **fig2** `L200/500/1000/2000` `50k/site` `CPU 30` `L-adaptive` `0.04√(1000/L)` (`results/L*/fig2/phase_diagram_{full,zoom}.png:1` `88K/85K` `L2000` `18:23` clean `LD/LD` band, was `3k` speckled) `30` workers (was `25`) to fill `78GiB` `32` cores
+- **fig3** `L500`/`L2000` `50k/site` `9` snaps `0.23-0.95` `512` `CPU 30` `22.2m` (`results/L500/fig3_points_high_cpu.npz:1` `75K` `dense 0.702→0.449` `β 0.23→0.2595` paper `0.2595` vs short `0.245`; `L2000` `75K` `20:27` `dense 0.742→0.303`) — snapshot `1.1M` `L=500`/`L=2000` fixed `L` label via `fig3_plot.snapshots` `f3.L` patched (`was L=1000` for all)
+- **fig3 animations** `24 fps` `10s` `240` frames `H` lerp `48→240` `L200` `5×` / `8→240` `30×` `L500/1000/2000` contiguous `no 0.95` jump (`results/L*/fig3_anim*.mp4:1` `L200 97K/180K` `L500 39K/72K` `L1000 29K/64K` `L2000 23K/55K` `11:47` `240` `10s` `0.8fps` `1250ms` `8`→`240`, `4.8fps` `208ms` `48`→`240`) via `imageio-ffmpeg` `7.0.2` `→ .venv/bin/ffmpeg` (was `8` frames `0.8 fps` `1.6s` choppy)
+- **fig4** `L200` `10M` `L500` `25M` `L2000` `200M` `100k/site` `CPU 30` `40` `β` (`results/L*/fig4_current_derivative.png:1` `80K` `18:26` `L2000`)
+- **fig6** `L200` `10M` `L500` `25M` `L1000` `50M` `L2000` `100M` `50k/site` `16` `CPU 30` `30` `β` `480` tasks `results/L*/fig6/currents_*` `densities_*` (`45K/55K` `17:11-17:39` done, `L2000` `41K/46K/45K` `07:55-08:16` fixed `pickling` top-level)
+- **GPU test** `fig3 L500` `9216` `threads` `25M` `230B` saved to `/tmp/opencode/fig3_L500_gpu_test.log:1` for comparison, final `CPU` used as requested (no `GPU` overflow `cuda_ensemble.py:357` `var` `overflow`)
+- **Commit** `a76974c` `67b0df5` `a50c805` `8170bfb` (no push, `VSCode`)
 
-### Prossimo
-- [ ] Quando fig5 finisce: commit `results/fig5_corrected/fig5_boundaries_corrected.npz`
-  (dovrebbe avere L4000/8000 beta_asym validi, ~0.253)
-- [ ] Plot finali phase diagram L200/L500/L1000 (già generati, verificare HD/LD)
-- [ ] Verificare che il classifier sia corretto (l'utente dubita di blocchi
-      sopra/sotto soglia) — confronto con eq MFT alpha/(1+alpha+alpha^2)
-- [ ] Commit risultati + cleanup (debug_fig5_beta.py)
+### Next: Presentation 2nd half (MC vs MFT, SSB, finite-size)
+- Theory done (90%). Need to update `presentation/slides.tex:596` `fig2` `fig5` `fig6` `fig3` `ssb` frames to point to `results/L2000`/`L500` high-budget `50k/site` figures (currently `../results/gpu/` and `../results/L1000`).
+- Add `L2000` comparison slide: `fig2` `L500` vs `L2000` `LD/LD` shrinking, `fig5` variant `6` `L`, `fig3` `L500` ` dense 0.449` at `0.2595`.
+- Verify `fig6` currents `α=0.1` `0.8` `0.9` for `L2000` match `MFT` at low `α,β` (as in `slides.tex:633`).
+- Add `fig4` `L2000` `dJ/dβ` saturation at `0.5` for `LD/MC`.
 
-### Note
-- fig5 in background: `ps aux | grep fig5_corrected`, npz in results/fig5_corrected/
-- Kill con `ps aux | grep fig5_corrected | awk '{print $2}' | xargs -r kill -9`
+### Notes
+- `L2000` bundle `fig2` `100M` `+ fig4` `200M` `+ fig6` `100M` `CPU 30` `~37m` done `18:26`, `fig3` `L500` `22m` `fig3` `L1000` `93m` `09:50` done, `fig3` `L2000` `75K` done.
+- `fig5` large `L` drift `0.229`/`0.182` vs paper `0.26` — `50k/site` `c=50` insufficient for `L8000` (`c=100` → `800M` needed, `theory/fig5_hdld_equilibration.md` calibration `100M` saturates `dense~0.89` at `L=1000`).
+- `home/alessio` `os.makedirs` at `import` mocked, `ffmpeg` via `imageio-ffmpeg` `→ .venv/bin/ffmpeg`.
 
-### Fatto
-- **Kernel**: Fenwick BKL (`run_bkl_fenwick`, O(log L), ~4x classic) + GPU ensemble
-  (`cuda_ensemble.py`, thread=replica, RNG on-device, float32, stats on-device).
-  `model.py` usa Fenwick di default. 13/13 test passano.
-- **Figure L=200** in `results/L200/` (fig2, fig6, fig3 snapshots+anim, ssb, mft_vs_mc).
-  `run_all_gpu.py`/`plot_all.py` parametrizzati con `--L`/`--out`.
-- **Figure L=500**: generate da npz esistenti (fig2/fig3/fig6; no ssb per L500).
-- **Env**: `.venv` rifatto con `uv` (numpy/mpl/scipy/numba/pytest). fig5 CPU
-  ProcessPool: forkserver fallisce se run da `-c`/`/tmp` → va run da script file.
-  Worker count memory-aware (`_n_workers`, L=8000 → 5 per RAM). Pinning CPU
-  con `taskset -c 0-15` (P-core), E-core 16 riservati per l'utente.
-- **Dev box: i7-13700F + RTX 4070 12GB (sm_89)**, GPU ~120-180 Mstep/s. Env
-  rifatto con `uv` (`.venv`, deps numpy/mpl/scipy/numba/pytest).
-- **BIGGER RUN (`scripts/run_bigger.py`, background + .log)**: SSB continuo
-  L=800 e L=2000; fig6 refit L=1000 con budget L-scalato (fix del gap
-  L500 dense~0.75 vs L200~0.92); fig5 boundary L=800/8000; materialize
-  results/L1000. L=8000 per SSB è un sink di tempo (equilibrazione ~L³); va
-  usato per fig5, non per SSB.
-- **fig5 CORRETTO (`scripts/fig5_corrected.py`) — CONFERMA LA TEORIA**: i dati
-  precedenti usavano il classifier PRE-fix (alpha_mcld~0.477 = artifact).
-  Rigenerato con classifier attuale + errori bootstrap (n_boot=200, resample
-  repliche):
-  | L | asym→LD (β) | LD→MC (α) |
-  |---|------------|-----------|
-  | 200 | 0.325±0.024 | 0.705±0.018 |
-  | 500 | 0.301±0.031 | 0.673±0.006 |
-  | 1000 | 0.301±0.027 | 0.640±0.022 |
-  | 2000 | 0.373±0.040 | 0.673±0.013 |
-  | 4000 | 0.301±0.004 | 0.738±0.016 |
-  | 8000 | 0.301±0.043 | nan |
-  LD→MC ≈ **0.67–0.74 = MFT eq10 (2β/(4β−1)=0.667)** ✓. Asym→LD ≈ 0.30–0.37
-  ≈ MFT eq23 (0.332) ✓. L=8000 LD→MC nan e L=2000 asym flicker = soglia SSB
-  noise-floor, non fisica. Output: `results/fig5_corrected/`.
-- **FIG3+SSB L=500 UNIFICATO** (`scripts/unified_alpha09.py` + `reduce_unified.py`):
-  un run continuo α=0.9 copre fig3+ssb (57 betas x 1024 reps, 50k step/site).
-  fig3_points 49/49, ssb_beta* (8), ssb_order_vs_beta.png, animazioni 2D/3D.
-  Budget L-scalato (c=100): fig3+ssb HEAVY, fig2/fig6 LIGHT (3000 step/site).
-  Il bundling fig6 nel fig3 AUMENTEREBBE il tempo totale → tenuto separato
-  (lezione: reuse solo se riduce wall-clock).
-- **fig3**: ensemble GPU, snapshots densi + animazioni 2D/3D (β 0.04→0.95).
-- **fig5**: boundary vs L su CPU (L=200,500,1000) — solo 2 punti validi, abbandonata.
-- **MFT-vs-MC**: boundary teorici verificati (eq 10/13/23/33); deviazione J_MC-J_MFT
-  misurata (max ~0.036). Presentazione Beamer (33 frame) in `presentation/`.
-
-### Scoperte chiave (vedi presentation/notes_ssb_discrepancy.md)
-- SSB a L=1000 è RISOLTO: il "dense~0.27, non vero HD" era un bug dei dati
-  (per-chunk reseed in run_all_gpu.py, non un run continuo). Un run continuo
-  raggiunge vero HD/LD (dense~0.89). Vedi theory/fig5_hdld_equilibration.md.
-- **CPU per-thread 4.4M step/s vs GPU 35k/s** → per run lunghe (equilibrazione) la CPU
-  è 100x meglio; GPU vince solo col parallelismo di massa (phase diagram, ensemble).
-- Per L=200 la CPU è 13x più veloce della GPU per ~100 realizzazioni.
-
-### Prossimo (non fatto)
-- [x] **Convergenza adattiva** (punto 2): `TwoChannelASEP.run_adaptive` ferma la
-  run quando la corrente a finestra (ultimi `win_steps`) coincide con la corrente
-  cumulativa entro `tol`. In MC (α=0.9, β=0.9, L=200) si ferma a ~29% dei max_steps
-  con |ΔJ|~0.01. Test `test_adaptive_convergence` aggiunto (14/14 passano).
-  Wired into `scan_points(adaptive=True)` + scripts fig6/currents_densities/mf_mc_boundary.
-  **Speedup misurato (L=200, 2M max_steps): MC/HD ~3-4x, LD ~20x** (la corrente
-  converge presto).
-- [ ] **AVX across trajectories** (punto 3): MISURATO e RIDIMENSIONATO. Il gain è
-  multi-core, non SIMD: `run_bkl_fenwick_batch` (prange su repliche indipendenti,
-  ognuna col suo slice di uniforms) = 14.0 Mstep/s su 12 core vs 2.9 Mstep/s
-  seriale (~4.8x), pari a ProcessPool (~5x). Le catene Fenwick find/update sono
-  data-dependent e non vettorizzabili. `scan_points_batch` NON è più veloce di
-  ProcessPool (overhead Python per-replica lo cancella). Test batch==serial
-  bit-identico aggiunto (15/15 passano).
-- [x] **Classifier fig5/fig2**: MC via current-saturation (J plateau ~1/4, metodo
-  paper Fig 4) + rho>0.45 invece di rho>0.35 → boundary MC/LD α ~0.70 (prima
-  0.477; il paper ~0.7-0.8). Soglia SSB L-adattiva 0.04·√(1000/L) → fix NaN a
-  L=200 (boundary asym→LD ~0.325). n_reps>=16 → fix outlier L=2000 (0.373→0.325).
-  VERIFICATO su /tmp/opencode/fig5_mcld.npy e fig5_L2000.npy.
-- [ ] **HD/LD RISOLTO**: NON era equilibration-limited. Calibration probe
-  (/tmp/opencode/calib_probe.py, α=0.9 β=0.1 L=1000, 12 rep, fino 500M step/rep,
-  ~10 min): dense≈0.89 dilute≈0.06, saturo da ~100M step, 12/12 rep. Il claim
-  "dense mai >0.5" derivava da un BUG dati: `run_all_gpu.py` resetta ogni chunk
-  con seed nuovo (traiettorie corte indipendenti, non un run continuo). Action:
-  rifare ssb scan GPU con traiettorie continue. Vedi
-  theory/fig5_hdld_equilibration.md. Backend (GPU/Rust/AVX) tutti ~entro 2x
-  (serial chain); il lever è un run continuo corretto (~10 min L=1000), non
-  budget enormi.
-- [x] **GPU BKL profiling (Nsight Compute)**: il 35 kstep/s/replica è REALE e
-  spiegato: 95.8% stall = long_scoreboard (latenza memoria globale sul Fenwick
-  scattered per-thread), NON Numba/RNG/matematica. Persiste a 57.8% occupancy.
-  Fenwick è già meglio di classic BKL (che peggiorerebbe). Rewrite CUDA C NON
-  aiuta (stessa global mem). Aggregate GPU ~72 Mstep/s vs CPU 12-core ~58
-  (~1.2x). Vedi theory/gpu_bkl_profiling.md. Lever = saturare occupancy (nrep
-  migliaia), non backend.
-- [ ] **New paper (Jimenez & Ortiz 2015, OkMC GPU)**: theory/1-s2.0-...pdf.
-  Parallel event-selection per-particle. MA: particelle indipendenti (no
-  exclusion); la nostra exclusion coupling rende "parallel across particles"
-  harder. Da valutare per l'extension, non per il kernel attuale.
-- [ ] Error bars in fig6 (n_reps già nel codice, serve rerun).
-- [ ] Presentazione: aggiungere figure L200, sezione MFT-vs-MC.
-
-## Paper Reading Phase
-- [x] Repo scaffold created (public, uv-based)
-- [x] Basic TwoChannelASEP class (pure Python, Gillespie step) — WORKING
-- [x] Phase scanner (classifies LD/MC/HD-LDD/LD-LDL) — WORKING
-- [x] Theory notes draft — MFT derivation, phase table
-- [x] OpenCode agent context (.opencode/, CLAUDE.md) — set up
-- [x] Numba acceleration module — written, tested (reproducibility bug fixed: kernel now consumes seeded numpy RNG stream)
-
-## Next: Code Structure Design (Tomorrow)
-After reading the paper, decide on:
-- [ ] Core abstraction: Model class vs. Simulator class
-- [ ] MC backend strategy: pure Python → numba → CUDA (when needed)
-- [ ] Observation strategy: streaming vs. batch sampling
-- [ ] Phase detection: threshold-based vs. clustering vs. density distribution P(ρ₁,ρ₂)
-- [ ] Finite-size scaling plan: which L values, which observables
-- [ ] Reproducibility: checkpoints, random seeds, data logging format
-
-## Long Term (Post Paper Read)
-### Phase 2: Reproduce Key Results
-- [x] Reproduce Figure 2: Phase diagram (MFT lines + MC points, scripts/phase_diagram.py)
-- [x] Reproduce Figure 6: Currents & densities (scripts/currents_densities.py)
-- [x] Finite-size scaling of LD/LD phase (scripts/ssb_finite_size.py)
-- [x] Density distribution P(ρ₁,ρ₂) for SSB detection (scripts/ssb_analysis.py)
-
-### Phase 2.7: FIGURE 3 — REVISED (ensemble reconstruction + animation)
-Paper's Fig 3: 3D plots of P(ρ₁,ρ₂) with CLEAR bimodal peaks (SSB). Root cause of our poor version: at L=1000 a single MC run gets STUCK in one broken state (one peak); the paper's P shows two peaks because their sampling visits both broken states.
-- [x] Fix: average P(ρ₁,ρ₂) over an ENSEMBLE of seeds (each lands in a random broken state) → reconstructs the two-peak structure
-- [x] Colored contour projected on bottom plane (paper is B&W; we use turbo colormap) so peak locations are clear
-- [x] Snapshots at the paper's exact β values (0.23-0.95)
-- [x] 3D animation sweeping β (0.04-0.35, parallelized precompute) showing peaks emerge/merge
-- [ ] NOTE: our SSB lives at lower β than the paper (0.06-0.12 vs paper's 0.23) — the MFT-vs-MC discrepancy. Snapshots at paper's β show diagonal peaks (symmetric); the off-diagonal peaks appear in our β range.
-- [ ] Run full 80-frame animation with fine β steps (0.0001) for the slow, sensitive region
-
-### Phase 2.5: Improve currents/densities figure (error bars + L)
-- [ ] Error bars: add n_reps replicas per beta (done in code, needs rerun). Current errors are small (~0.009, < dot size); density errors are large (~0.18) in SSB phase because replicas land in different broken states (genuine bimodality, not noise)
-- [ ] Increase L to ~1000 (paper used 1000-12000) to close finite-size gap vs MFT. NOTE: larger L does NOT reduce statistical error bars (those come from steps+replicas); it only fixes finite-size bias. 100k is beyond paper range and overkill
-- [ ] Note in legend if error bars are smaller than the dots
-
-### Phase 2.6: KEY IDEA — MF transition positions are NOT exact (professor's focus)
-The paper's central point: unlike standard single-lane TASEP (where MFT gives exact phase boundaries), here the MFT transition positions deviate from MC. Investigate in detail:
-- [x] Add embarrassingly-parallel MC scans (asep/parallel.py, ~7-10x speedup on 12 cores) — no more waiting on serial beta scans
-- [x] Measure the LD/MC boundary shift vs MFT (scripts/mf_mc_boundary.py): MC boundary sits at HIGHER beta than MFT; deviation grows with alpha (+0.01 at a=0.8 -> +0.075 at a=1.0)
-- [x] Verify MFT boundary formulas against the paper (eq 10/13, 23, 33) — confirmed in phase_diagram.py. For alpha=0.9: HD/LD↔LD/LD at beta=0.3321, LD/LD↔LD at beta=0.3324 (nearly coincident); for beta=1.0: MC/LD at alpha=0.6667. NOTE: at L=1000 our SSB is a weak LD/LD-type asymmetry (dense~0.27, not a true HD), so the paper's HD/LD boundary is not directly reproducible; see presentation/notes_ssb_discrepancy.md.
-- [x] fig5 phase boundaries vs L (scripts/fig5_boundaries.py, CPU): asym->LD boundary in beta drops with L (0.349 at L=500 -> 0.301 at L=1000, MFT 0.332); LD->MC boundary in alpha ~0.477 constant (MFT 0.667, large MFT-vs-MC deviation). L=200 points are NaN (SSB too strong at small L for the fixed threshold).
-- [ ] For each boundary, measure the MC transition position vs the MFT prediction (e.g. α=2β/(4β−1) for LD/MC) and plot the deviation vs β
-- [ ] Check whether the deviation shrinks with L (finite-size) or persists in the thermodynamic limit (genuine MF failure) — NEED LONGER RUNS at L=800 (equilibration-limited, not parallelization-limited)
-- [ ] Compare with standard TASEP: confirm MFT is exact there (α=β=1/2 lines) vs. not exact here — this contrast is the paper's message
-- [ ] Explain WHY: MFT neglects correlations; the narrow-entrance coupling creates boundary correlations that MFT misses (effective impurity at the boundary)
-- [ ] Add a slide/figure in the presentation dedicated to this MF-vs-MC discrepancy
-
-### Phase 3: Extension
-- [ ] Asymmetric rates? Wider entrances? 3-channel?
-
-### Phase 3.5: Optimization exploration — SUMMARY (concluded, keep code lean)
-Explored and measured, then removed unused code (cuda.py, xorshift) to keep repo clean. Final production path:
-- [x] **BKL active-site list** (asep/bkl.py, wired into TwoChannelASEP.run default): ~2.2x over Gillespie
-- [x] **ProcessPool parallel scans** (asep/parallel.py): ~4x (12 cores); one thread per run — MC is serial within a trajectory, so parallelism is only across realizations
-- [x] **Numba > hand-written C**: clean C BKL (gcc -O2) = 559 ns/step vs numba 326 ns/step. C would NOT drastically help. GPU not worth it either (~1.2x vs CPU parallel, serial-chain structural limit). RNG was never a bottleneck (~4% of runtime).
-
-### Phase 4: Presentation
-- [ ] Beamer slides
-- [ ] Live demo notebook
+### Fatto (storico)
+- Kernel Fenwick `4.8 Mstep/s` `30` workers `70GiB` `32` cores, `13/13` tests pass.
+- `presentation` `33` frames `slides.pdf` `theory` `90%` done.
