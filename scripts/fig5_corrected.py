@@ -180,22 +180,26 @@ def main():
 
     fig, axes = plt.subplots(1, 2, figsize=(13, 5))
     ax = axes[0]
-    ax.errorbar(Ls, asym, yerr=e_asym, fmt="o-", ms=6, capsize=4,
+    ax.errorbar(Ls, asym, yerr=e_asym, fmt="o", ms=6, capsize=4, ls="none",
                 label="MC asym$\\to$LD boundary")
     ax.axhline(theory_hdld, color="k", ls=":", lw=1.2,
                label=f"MFT (eq23)={theory_hdld:.3f}")
     ax.set_xscale("log"); ax.set_xlabel(r"$L$"); ax.set_ylabel(r"$\beta$ boundary")
     ax.set_title(rf"(a) asym$-$LD boundary, $\alpha=0.9$")
     ax.set_ylim(0.2, 0.45)
+    ax.set_xticks(Ls); ax.set_xticklabels([str(int(x)) for x in Ls])
+    ax.get_xaxis().set_minor_locator(plt.NullLocator())
     ax.legend(fontsize=8)
 
     ax = axes[1]
     m = ~np.isnan(mcld)
-    ax.errorbar(Ls[m], mcld[m], yerr=e_mcld[m], fmt="s-", ms=6, capsize=4,
+    ax.errorbar(Ls[m], mcld[m], yerr=e_mcld[m], fmt="s", ms=6, capsize=4, ls="none",
                 label="LD$\\to$MC boundary")
     ax.axhline(theory_mc, color="k", ls=":", lw=1.2, label=f"MFT MC/LD (eq10)={theory_mc:.3f}")
     ax.set_xscale("log"); ax.set_xlabel(r"$L$"); ax.set_ylabel(r"$\alpha$ boundary")
     ax.set_title(rf"(b) LD/MC boundary, $\beta=1.0$")
+    ax.set_xticks(np.array(Ls)[m]); ax.set_xticklabels([str(int(x)) for x in np.array(Ls)[m]])
+    ax.get_xaxis().set_minor_locator(plt.NullLocator())
     ax.legend(fontsize=8)
 
     fig.tight_layout()

@@ -69,21 +69,26 @@ def classify_point(rhos1, rhos2, J1, J2, alpha, beta, L, mc_rho=0.45):
 _UNIFORM_CHUNK = 1_000_000   # 1M steps worth of uniforms per chunk (~24 MB)
 
 
-def _run_chunked(lane1, lane2, alpha, beta, total, rng, u_idx):
+def _run_chunked(lane1, lane2, alpha, beta, total, rng):
     """Run `total` BKL steps in uniform chunks (bounded memory), streaming the
     RNG so a huge (steps+warmup)*3 pre-alloc never happens. Returns
-    (total_time, n_exit1, n_exit2, new_u_idx)."""
+    (total_time, n_exit1, n_exit2).
+
+    NOTE: each chunk gets a FRESH uniforms buffer, so the kernel's u_idx must
+    restart at 0 every chunk. Passing the accumulated index across chunks read
+    past the end of the new buffer -> SIGSEGV in the workers (numba does not
+    bounds-check)."""
     from asep.bkl import run_bkl_fenwick
     t = 0.0; c1 = 0; c2 = 0
     remaining = total
     while remaining > 0:
         n = min(remaining, _UNIFORM_CHUNK)
         uniforms = rng.random(n * 3)
-        dt, e1, e2, u_idx = run_bkl_fenwick(lane1, lane2, alpha, beta,
-                                            n, uniforms, u_idx)
+        dt, e1, e2, _ = run_bkl_fenwick(lane1, lane2, alpha, beta,
+                                        n, uniforms, 0)
         t += dt; c1 += e1; c2 += e2
         remaining -= n
-    return t, c1, c2, u_idx
+    return t, c1, c2
 
 
 def _one_replica(args):
@@ -92,8 +97,8 @@ def _one_replica(args):
     lane1 = (rng.random(L) < 0.4).astype(np.int8)
     lane2 = (rng.random(L) < 0.4).astype(np.int8)
     # stream uniforms in chunks -> bounded memory regardless of L/steps
-    _run_chunked(lane1, lane2, alpha, beta, warmup, rng, 0)
-    dt, e1, e2, _ = _run_chunked(lane1, lane2, alpha, beta, steps, rng, 0)
+    _run_chunked(lane1, lane2, alpha, beta, warmup, rng)
+    dt, e1, e2 = _run_chunked(lane1, lane2, alpha, beta, steps, rng)
     return (e1 / dt, e2 / dt, np.mean(lane1), np.mean(lane2))
 
 def _n_workers(L, n_steps):

@@ -9,6 +9,7 @@ dependencies = [
     "numba>=0.60",
     "scipy>=1.14",
     "tqdm>=4.66",
+    "numba-cuda[cu12]>=0.30.4",
 ]
 
 [build-system]

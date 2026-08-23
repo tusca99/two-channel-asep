@@ -132,7 +132,8 @@
     0,
     1
   ],
-  "steps": 2000000,
-  "steps_per_site": 10000,
-  "warmup": 400000
+  "steps": 10000000,
+  "steps_per_site": 50000,
+  "warmup": 2000000,
+  "note": "CPU regen 50k/site (same as L500/L1000), L-adaptive asym 0.04*sqrt(1000/L), upper-left skip LD"
 }
