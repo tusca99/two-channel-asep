@@ -138,8 +138,8 @@ ax.annotate("", xy=(1.6, Y_B-0.45), xytext=(L-1.6, Y_B-0.45),
 # Labels
 ax.text(L/2, Y_T+H+0.85, "Channel 1  →  enter @0, exit @L−1", ha="center", va="center", fontsize=11, color=C_CH1, fontweight="bold")
 ax.text(L/2, Y_B-0.70, "Channel 2  ←  enter @L−1, exit @0", ha="center", va="center", fontsize=11, color=C_CH2, fontweight="bold")
-ax.text(0, Y_B-0.55, "narrow entrance: ch1 blocked if lane2[0] occupied", ha="center", fontsize=8, color=C_ENTRANCE, style="italic")
-ax.text(L-1, Y_B-0.55, "narrow entrance: ch2 blocked if lane1[L-1] occupied", ha="center", fontsize=8, color=C_ENTRANCE, style="italic")
+ax.text(0, Y_B-0.85, "narrow entrance: ch1 blocked if lane2[0] occupied", ha="center", fontsize=8, color=C_ENTRANCE, style="italic")
+ax.text(L-1, Y_B-0.85, "narrow entrance: ch2 blocked if lane1[L-1] occupied", ha="center", fontsize=8, color=C_ENTRANCE, style="italic")
 ax.text(-1.25, QY+0.45, "waiting", ha="center", fontsize=7, color=C_CH1, alpha=0.9)
 ax.text(L+0.25, QY2+0.45, "waiting", ha="center", fontsize=7, color=C_CH2, alpha=0.9)
 
