@@ -146,7 +146,7 @@ ax.text(L+0.25, QY2+0.45, "waiting", ha="center", fontsize=7, color=C_CH2, alpha
 
 # Title and time counter (moved to top-right to avoid bottom overlap)
 title = ax.set_title(f"Two-channel ASEP  L={L}  α={ALPHA:.2f}  β={BETA:.2f}  —  1 frame = 1 event + {SUB}× slide", fontsize=11, color=C_TEXT, pad=18)
-time_text = ax.text(0.98, 0.98, "", ha="right", va="top", fontsize=8, color="#6c757d", transform=ax.transAxes,
+time_text = ax.text(0.98, 1.2, "", ha="right", va="top", fontsize=8, color="#6c757d", transform=ax.transAxes,
                     bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="#dee2e6", alpha=0.9))
 
 ax.set_xlim(-1.6, L+0.6)
