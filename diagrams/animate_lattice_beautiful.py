@@ -88,9 +88,10 @@ frames1.append(raw1[-1]); frames2.append(raw2[-1]); frames_meta.append(None)
 n_frames = len(frames1)
 print(f"Events {n_events} -> frames {n_frames} (SUB={SUB}) => {n_frames/15:.1f}s at 15fps")
 
-fig, ax = plt.subplots(figsize=(16, 5.2))
+fig, ax = plt.subplots(figsize=(14, 3.6))
 fig.patch.set_facecolor(C_BG)
 ax.set_facecolor(C_BG)
+fig.subplots_adjust(left=0.02, right=0.98, top=0.88, bottom=0.12)
 
 boxes=[]
 def add_box(xc, y, w, h, lane, site, is_entrance):
@@ -148,10 +149,11 @@ title = ax.set_title(f"Two-channel ASEP  L={L}  α={ALPHA:.2f}  β={BETA:.2f}  �
 time_text = ax.text(0.98, 0.98, "", ha="right", va="top", fontsize=8, color="#6c757d", transform=ax.transAxes,
                     bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="#dee2e6", alpha=0.9))
 
-ax.set_xlim(-2.4, L+1.4)
-ax.set_ylim(Y_B-1.15, Y_T+H+1.05)
+ax.set_xlim(-1.6, L+0.6)
+ax.set_ylim(Y_B-0.90, Y_T+H+0.75)
 ax.set_aspect("equal")
 ax.axis("off")
+fig.tight_layout(pad=0.4)
 
 def init():
     for r,_,_,_ in boxes:
