@@ -1,65 +1,93 @@
 <mxfile host="app.diagrams.net">
-  <diagram id="structure" name="Module Structure">
-    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="800" math="0" shadow="0">
+  <diagram id="structure_v2" name="Module Structure v2">
+    <mxGraphModel dx="1420" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="850" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-
+        <!-- Title -->
+        <mxCell id="title" value="Two-Channel ASEP — Code Structure (2026, 30 workers, 78 GiB)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;fontColor=#343a40;" vertex="1" parent="1">
+          <mxGeometry x="400" y="10" width="600" height="30" as="geometry" />
+        </mxCell>
         <!-- asep package -->
-        <mxCell id="asep" value="asep/ (package)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="60" y="40" width="180" height="50" as="geometry" />
+        <mxCell id="asep" value="asep/  —  simulation core (importable)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1976d2;strokeWidth=2;fontSize=13;fontStyle=1;fontColor=#0d47a1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="260" height="40" as="geometry" />
         </mxCell>
-
         <!-- model.py -->
-        <mxCell id="model" value="model.py&#xa;TwoChannelASEP" style="swimlane;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;startSize=28;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="320" y="40" width="280" height="300" as="geometry" />
+        <mxCell id="model" value="model.py&#xa;TwoChannelASEP&#xa;— uses run_bkl_fenwick by default" style="swimlane;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;startSize=26;fontSize=11;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="260" height="160" as="geometry" />
         </mxCell>
-        <mxCell id="model_fields" value="L, α, β, seed&#xa;lane1, lane2 : int8[L]&#xa;total_time, current1, current2&#xa;site_density1/2, joint_samples" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=6;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="330" y="80" width="260" height="90" as="geometry" />
+        <mxCell id="model_body" value="• L, α, β, seed&#xa;• lane1, lane2 : int8[L]&#xa;• run(n_steps, sample_every, warmup)&#xa;  → Fenwick BKL (O log L)&#xa;• get_currents() / get_bulk_densities()" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=6;fontSize=10;fontColor=#1b5e20;" vertex="1" parent="1">
+          <mxGeometry x="50" y="155" width="240" height="110" as="geometry" />
         </mxCell>
-        <mxCell id="model_methods" value="run(n_steps, sample_every, warmup)&#xa;get_bulk_densities() → ρ1,ρ2&#xa;get_currents() → J1,J2&#xa;get_site_density_profiles()&#xa;get_joint_density_samples()&#xa;reset()" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=6;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="330" y="180" width="260" height="120" as="geometry" />
+        <!-- bkl.py -->
+        <mxCell id="bkl" value="bkl.py  —  BKL kernels" style="swimlane;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;startSize=26;fontSize=11;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="340" y="120" width="260" height="160" as="geometry" />
         </mxCell>
-
-        <!-- mc.py -->
-        <mxCell id="mc" value="mc.py (numba kernel)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;startSize=28;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="680" y="40" width="300" height="220" as="geometry" />
+        <mxCell id="bkl_body" value="• run_bkl (classic, O n)&#xa;• run_bkl_fenwick (Fenwick, O log L)&#xa;  ~4.8 Mstep/s/core&#xa;• run_bkl_fenwick_batch (prange)&#xa;• _run_chunked streaming 1M×3 uniforms" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=6;fontSize=10;fontColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="350" y="155" width="240" height="110" as="geometry" />
         </mxCell>
-        <mxCell id="mc_methods" value="_collect_moves(...)&#xa;→ (move_types, move_sites, move_rates)&#xa;mc_step_numba(...) → dt, e1, e2&#xa;run_mc_batched(...) → time, n_exit1, n_exit2&#xa;make_uniforms(n_steps, rng)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=6;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="690" y="80" width="280" height="150" as="geometry" />
+        <!-- cuda_ensemble -->
+        <mxCell id="cuda" value="cuda_ensemble.py  —  GPU ensemble" style="swimlane;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c2185b;startSize=26;fontSize=11;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="640" y="120" width="260" height="160" as="geometry" />
         </mxCell>
-
-        <!-- observables.py -->
-        <mxCell id="obs" value="observables.py" style="swimlane;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;startSize=28;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="1040" y="40" width="220" height="180" as="geometry" />
+        <mxCell id="cuda_body" value="• thread = replica (1:1)&#xa;• RNG on-device, float32&#xa;• stats on-device&#xa;• run_ensemble_cuda / _continue&#xa;• 12GB RTX 4070 120-180 Mstep/s" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=6;fontSize=10;fontColor=#880e4f;" vertex="1" parent="1">
+          <mxGeometry x="650" y="155" width="240" height="110" as="geometry" />
         </mxCell>
-        <mxCell id="obs_methods" value="classify_phase(J1,J2,ρ1,ρ2,α,β,L)&#xa;→ 'LD'|'MC'|'HD/LD'|'LD/LD'&#xa;classify_phase_simple(...)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=6;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="1050" y="80" width="200" height="120" as="geometry" />
+        <!-- parallel.py -->
+        <mxCell id="par" value="parallel.py  —  scans" style="swimlane;whiteSpace=wrap;html=1;fillColor=#e8eaf6;strokeColor=#283593;startSize=26;fontSize=11;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="940" y="120" width="260" height="160" as="geometry" />
         </mxCell>
-
-        <!-- analysis scripts -->
-        <mxCell id="scripts" value="scripts/ &amp; analyze/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="60" y="520" width="180" height="50" as="geometry" />
+        <mxCell id="par_body" value="• scan_points / scan_points_samples&#xa;  ProcessPool 30 workers (78GiB)&#xa;• scan_phase_diagram_gpu&#xa;• scan_beta_gpu / scan_grid_gpu&#xa;• make_tasks (31×31, 31×21)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=6;fontSize=10;fontColor=#1a237e;" vertex="1" parent="1">
+          <mxGeometry x="950" y="155" width="240" height="110" as="geometry" />
         </mxCell>
-        <mxCell id="scripts_list" value="scripts/:&#xa;  currents_densities.py&#xa;  phase_diagram.py&#xa;  ssb_analysis.py&#xa;  ssb_finite_size.py&#xa;analyze/:&#xa;  scan_phase_diagram.py" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=6;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="60" y="590" width="300" height="160" as="geometry" />
+        <!-- observables -->
+        <mxCell id="obs" value="observables.py / fig5_boundaries.py" style="swimlane;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#f9a825;startSize=26;fontSize=11;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="640" y="320" width="260" height="130" as="geometry" />
         </mxCell>
-
-        <!-- dependencies edges -->
-        <mxCell id="d1" value="uses kernel" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeWidth=1.5;fontSize=11;endArrow=classic;startArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="model" target="mc">
+        <mxCell id="obs_body" value="• classify_phase(J,ρ,α,β,L,samples)&#xa;  MC by current 1/4, L-adaptive SSB&#xa;  0.04·√(1000/L)&#xa;• dense = max(ρ1,ρ2) >0.5&#xa;• LD/LD vs HD/LD" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="650" y="355" width="240" height="80" as="geometry" />
+        </mxCell>
+        <!-- scripts -->
+        <mxCell id="scripts" value="scripts/  —  50k/site high (2026)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;strokeWidth=2;fontSize=13;fontStyle=1;fontColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="40" y="320" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="scripts_body" value="• fig2: 31×31 + 31×21, 50k/site, 30w&#xa;• fig3: 9 snaps 0.23-0.95, 512 reps, 25-100M&#xa;  24fps 10s 240 frames H-lerp&#xa;• fig4: 40 β, 100k/site, dJ/dβ&#xa;• fig5: 24 β, 50k/site, bootstrap 200&#xa;• fig6: 30 β ×3 α, 50k/site, 16 reps" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="50" y="365" width="240" height="110" as="geometry" />
+        </mxCell>
+        <!-- results -->
+        <mxCell id="results" value="results/L200, L500, L1000, L2000&#xa;fig2/fig3/fig4/fig6 + params.json&#xa;results/fig5_corrected, fig5_variant_left" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f2f1;strokeColor=#00695c;strokeWidth=2;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="520" width="260" height="80" as="geometry" />
+        </mxCell>
+        <!-- presentation / theory -->
+        <mxCell id="pres" value="presentation/  33 frames Beamer&#xa;theory/  MFT eq 10/23/33, paper PDF" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#6a1b9a;strokeWidth=2;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="940" y="520" width="260" height="80" as="geometry" />
+        </mxCell>
+        <!-- tests -->
+        <mxCell id="tests" value="tests/  13 tests  (pytest)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="640" y="520" width="260" height="40" as="geometry" />
+        </mxCell>
+        <!-- arrows -->
+        <mxCell id="e1" value="uses Fenwick" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeWidth=1.8;strokeColor=#2e7d32;endArrow=classic;startArrow=none;fontSize=10;fontColor=#2e7d32;" edge="1" parent="1" source="model" target="bkl">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="d2" value="uses" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeWidth=1.5;fontSize=11;endArrow=classic;startArrow=none;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="scripts" target="model">
+        <mxCell id="e2" value="uses GPU ensemble" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeWidth=1.8;strokeColor=#c2185b;endArrow=classic;startArrow=none;fontSize=10;fontColor=#c2185b;dashed=1;" edge="1" parent="1" source="model" target="cuda">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="d3" value="uses" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeWidth=1.5;fontSize=11;endArrow=classic;startArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="scripts" target="obs">
+        <mxCell id="e3" value="30 workers" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeWidth=1.8;strokeColor=#283593;endArrow=classic;startArrow=none;fontSize=10;fontColor=#283593;" edge="1" parent="1" source="par" target="bkl">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1070" y="300"/><mxPoint x="470" y="300"/></Array></mxGeometry>
+        </mxCell>
+        <mxCell id="e4" value="classify" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeWidth=1.5;strokeColor=#f9a825;endArrow=classic;startArrow=none;" edge="1" parent="1" source="obs" target="par">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <mxCell id="note" value="Reproduces Pronina &amp; Kolomeisky, J. Phys. A 40, 2275 (2007)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;" vertex="1" parent="1">
-          <mxGeometry x="420" y="700" width="400" height="30" as="geometry" />
+        <mxCell id="e5" value="reads" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeWidth=1.5;strokeColor=#00695c;endArrow=classic;startArrow=none;dashed=1;" edge="1" parent="1" source="scripts" target="par">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
+        <mxCell id="e6" value="writes" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeWidth=1.5;strokeColor=#00695c;endArrow=classic;startArrow=none;" edge="1" parent="1" source="scripts" target="results">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="Pronina &amp; Kolomeisky J. Phys. A 40, 2275 (2007)  •  50k/site high (c=50) 30 workers 78GiB  •  CPU 4.4M/core, GPU 35k/thread" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#37474f;" vertex="1" parent="1">
+          <mxGeometry x="340" y="620" width="600" height="20" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
