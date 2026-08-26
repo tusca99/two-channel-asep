@@ -1,7 +1,21 @@
 # TODO — Two-Channel ASEP
 
-## Current State (23 Aug 2026) — READY FOR PUSH & PRESENTATION 2nd HALF
-**Revise done, 4h window used, all high-budget runs with 30 workers, CPU only (no GPU overflow).**
+## Current State (23 Aug 2026) — PRESENTATION DONE, ready for push
+**Revise done, 4h window used, all high-budget runs with 30 workers, CPU only (no GPU overflow). Presentation 2nd half rebuilt (42 frames, xelatex clean, visual-checked).**
+
+### Presentation (done 23 Aug evening)
+- `presentation/slides.tex` rebuilt after theory (~frame 22): all figures now point to
+  `results/L2000|L500|L1000|L200` high-budget data (old `results/gpu/` paths were dead).
+- New frames: MC runs table (c·L rule), MC-vs-MFT L2000 fig2, fig6 trio L2000,
+  HD/LD transition densities (jump 0.23 vs MFT 0.332), transition-position deviation,
+  fig4 L2000 (J1+J2 → 1/2, dJ/dβ → 0), L500-vs-L2000 band shrinking, fig5a variant 6L,
+  SSB order parameter (L1000 explicit path — graphicspath picks L500 otherwise!),
+  fig3 ensemble L2000 512 replicas + mp4 buttons, References, Thank-you, 2 backups.
+- Replaced missing `figures/tasep_*.png` with TikZ phase diagram + pgfplots J(β).
+- Skill compliance: 0 `\pause`, semantic colors `\pos/\con/\HL`, 10pt, author set.
+- `\movie` removed (pdfmark undefined under XeLaTeX) → poster + `\href` to mp4.
+- Compile: `cd presentation && xelatex slides.tex` ×2 — 0 err, 0 overfull, 42 pp.
+- beamer skill installed at `.opencode/skills/beamer/` (auto-loads next session).
 
 ### Done in this revise (23 Aug, commits 8170bfb, a76974c, a50c805, 67b0df5)
 - **fig5** `scatter` `o`/`s` `ls="none"` `set_xticks(Ls)` `NullLocator` — no overlapping `2×10²` ticks, no misleading line (`scripts/fig5_corrected.py:183` `results/fig5_corrected/fig5_phase_boundary_vs_L.png:1` `69K`)
