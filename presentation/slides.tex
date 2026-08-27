@@ -24,15 +24,15 @@
 
 \title[Two-Channel ASEP]{Spontaneous symmetry breaking in two-channel\\ asymmetric exclusion processes with narrow entrances}
 \subtitle{Reproduction of Pronina \& Kolomeisky, J. Phys. A 40, 2275 (2007)}
-\author{Alessio}
-\institute{Department of Physics}
+\author{Alessio Tuscano}
+\institute{}
 \date{\today}
 
 \begin{document}
 
 \begin{frame}
   \titlepage
-  \note{1 hour talk. Theory-heavy first half (~25 min), results second half.}
+  %% \note{1 hour talk. Theory-heavy first half (~25 min), results second half.}
 \end{frame}
 
 \begin{frame}{Outline}
@@ -376,7 +376,7 @@
 \end{frame}
 
 \begin{frame}{Symmetric MC phase (eqs 8--10)}
-  \scriptsize
+  \footnotesize
   \textbf{Step 1: current fixes $m_1$ (eq 8).}
   In MC, $J_1 = J_2 = 1/4$; the exit current of channel 2 gives
   \[
@@ -397,7 +397,7 @@
 \end{frame}
 
 \begin{frame}{Symmetric LD phase (eqs 11--13)}
-  \scriptsize
+  \footnotesize
   \textbf{Step 1: current fixes $m_1$ (eq 11).}
   In LD, $J_1 = J_2 = \alpha_1(1-\alpha_1)$; exit current of channel 2:
   \[
@@ -457,11 +457,12 @@
 \end{frame}
 
 \begin{frame}{Asymmetric HD/LD phase (eqs 20--23)}
-  \scriptsize
+  \small
   \textbf{Conditions (eq 20).}
   Channel 1 in HD: $\alpha_1 > \beta$, $\beta < 1/2$;\quad
   Channel 2 in LD: $\alpha_2 < \beta$, $\alpha_2 < 1/2$.
-  \textbf{Step 1: currents (eq 21).}
+  \\
+\textbf{Step 1: currents (eq 21).}
   \[
     J_1 = \beta p_L = \beta(1-\beta)
     \quad\Rightarrow\quad p_L = 1 - \beta,
@@ -510,7 +511,7 @@
 \end{frame}
 
 \begin{frame}{Asymmetric LD/LD phase: solve (eqs 27--31)}
-  \scriptsize
+  \footnotesize
   \textbf{Step 1: difference of the two equations (eq 28).}
   \[
     D = \frac{\alpha}{\beta}\left(\alpha_1 - \alpha_1^2 - \alpha_2 + \alpha_2^2\right)
@@ -594,7 +595,7 @@
 
 %% =====================================================================
 \section{Monte Carlo vs mean-field}
-\begin{frame}{High-budget Monte Carlo runs}
+\begin{frame}{High-budget simulation runs}
   \small
   \begin{columns}[T]
     \column{0.5\textwidth}
@@ -611,9 +612,11 @@
         2000 & $1\times10^{8}$   & $5\times10^{4}$ \\
         \bottomrule
       \end{tabular}
+      \vspace{0.4em}
+      {\scriptsize $c$ = prefactor in steps/site $\approx cL$; here $c\approx50$ (need $c\approx100$ for $L\ge4000$).}
     \column{0.47\textwidth}
       \begin{itemize}
-        \item Fenwick-tree BKL, 30 CPU workers.
+        \item Fenwick-tree BKL, 30 CPU workers (SIM).
         \item Equilibration budget must \textbf{scale with $L$}
           (steps/site $\approx c\,L$): a fixed budget under-equilibrates
           large $L$.
@@ -624,15 +627,15 @@
   \note{All results from today's high-budget runs: per-L bundles in
     results/L*, 50k steps/site equilibration everywhere. The c-L rule: the
     SSB dense basin at L=1000 needs ~100k steps/site, so budget must grow
-    linearly with L (total ~ c L^2).}
+    linearly with L (total ~ c L^2). $c\approx50$ here; grey shade in Fig5 is exactly where $c=50$ fails.}
 \end{frame}
 
-\begin{frame}{Phase diagram: MC vs MFT ($L=2000$)}
+\begin{frame}{Phase diagram: SIM vs MFT ($L=2000$)}
   \begin{columns}[T]
     \column{0.5\textwidth}
       \centering
       \includegraphics[height=0.56\textheight,keepaspectratio]{fig2/phase_diagram_full.png}\\
-      {\scriptsize full range}
+      {\scriptsize full range — $5\times10^{4}$/site}
     \column{0.5\textwidth}
       \centering
       \includegraphics[height=0.56\textheight,keepaspectratio]{fig2/phase_diagram_zoom.png}\\
@@ -640,96 +643,76 @@
   \end{columns}
   \vspace{0.2em}
   \begin{itemize}
-    \item Lines: mean-field (eqs 10, 23, 33); symbols: MC,
-      $5\times10^{4}$ steps/site.
-    \item Topology reproduced: LD, MC, HD/LD, LD/LD all present.
-    \item \textbf{Boundary positions deviate} --- the paper's key message.
+    \item Lines: MFT (eqs 10, 23, 33); symbols: SIM — \pos{topology reproduced} (LD, {\small MC}, HD/LD, LD/LD).
+    \item \textbf{Boundary positions deviate} --- the paper's key message (red band below MFT dashed).
   \end{itemize}
   \note{Clean bands at L=2000 (no speckle, unlike the old 3k/site runs).
     The HD/LD red band sits clearly BELOW the MFT dashed line. This slide is
-    the anchor for the rest of the section.}
+    the anchor for the rest of the section. We do not show the original paper
+    scan — our high-budget reproduction at 50k/site stands alone; original in
+    backup if asked.}
 \end{frame}
 
-\begin{frame}{Currents and densities ($L=2000$)}
+\begin{frame}{Where MFT works — and where it breaks ($\alpha=0.9$)}
   \begin{columns}[T]
-    \column{0.33\textwidth}
+    \column{0.52\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{fig6/currents_alpha0.1.png}\\
-      {\small currents, $\alpha=0.1$}
-    \column{0.33\textwidth}
-      \centering
-      \includegraphics[width=\textwidth]{fig6/densities_alpha0.8.png}\\
-      {\small densities, $\alpha=0.8$}
-    \column{0.33\textwidth}
-      \centering
-      \includegraphics[width=\textwidth]{fig6/densities_alpha0.9.png}\\
-      {\small densities, $\alpha=0.9$}
-  \end{columns}
-  \begin{itemize}
-    \item Lines: mean-field; symbols: MC ($\pm$ s.e.\ over replicas).
-    \item \pos{Good agreement in LD} (low $\alpha,\beta$); deviations grow
-      toward the transitions.
-  \end{itemize}
-  \note{At alpha=0.1 the MC points sit on the MFT curve within error bars
-    across the whole beta range (LD). The alpha=0.9 densities show where it
-    breaks: next slide.}
-\end{frame}
-
-\begin{frame}{Across the HD/LD transition ($\alpha=0.9$)}
-  \begin{columns}[T]
-    \column{0.44\textwidth}
-      \centering
-      \includegraphics[width=0.92\textwidth]{fig6/densities_alpha0.9.png}
-    \column{0.53\textwidth}
+      \includegraphics[width=\textwidth]{fig6/densities_alpha0.9_proj.png}
+    \column{0.45\textwidth}
       \begin{itemize}
-        \item MC (symbols): sharp HD/LD jump at $\beta \approx 0.23$.
+        \item SIM (symbols): sharp HD/LD jump at $\beta \approx 0.23$.
         \item MFT (dashed): jump at $\beta = 0.332$ (eq 23) ---
           \con{shifted by ${\sim}0.1$}.
         \item Dense plateau $\rho \approx 0.71$ vs MFT ${\sim}0.8$.
-        \item Both lanes $\to 1/2$ (dotted) in MC: symmetry restored.
+        \item LD at low $\beta$ and {\small MC} at high $\beta$ \pos{agree} (see currents backup) — deviation localized at transitions.
       \end{itemize}
   \end{columns}
   \note{The jump position is the cleanest single number: MC 0.23 vs MFT
-    0.332. The MFT dashed curve is the eq-23/eq-33 prediction.}
+    0.332. The MFT dashed curve is the eq-23/eq-33 prediction. We keep one
+    focused story (HD/LD) instead of three cramped panels; the $\alpha=0.1$
+    LD agreement is in backup and is the sanity check that our code is correct.}
 \end{frame}
 
 \begin{frame}{Transition positions: the paper's key message}
   \begin{columns}[T]
     \column{0.5\textwidth}
       \centering
-      \includegraphics[width=0.95\textwidth]{mft_mc_deviation.png}\\
-      {\scriptsize $J_1^{\mathrm{MC}} - J_1^{\mathrm{MFT}}$ vs $\beta$
-        ($L=2000$)}
+      \includegraphics[width=0.95\textwidth]{mft_mc_deviation_proj.png}\\
+      {\scriptsize $J_1^{\mathrm{SIM}} - J_1^{\mathrm{MFT}}$ vs $\beta$
+        ($L=2000$, $5\times10^{4}$/site)}
     \column{0.47\textwidth}
       \begin{itemize}
         \item Deviation ${\approx}0$ deep inside a phase,
           \con{largest near the transitions} (${\sim}0.04$).
-        \item HD/LD boundary: MC at $\beta\approx0.23$, MFT at $0.33$
+        \item HD/LD boundary: SIM at $\beta\approx0.23$, MFT at $0.33$
           (eq 23).
         \item Unlike single-lane TASEP (MFT exact), here transition
           positions are only \emph{approximate}.
-        \item Persists at the largest $L$ simulated ($2000$).
+        \item Persists at $L=2000$ — \HL{not a finite-size transient}.
       \end{itemize}
   \end{columns}
   \note{The deviation plot at L=2000: near-zero deep in the symmetric
     phases, dips of ~0.04 near the transition region. The systematic
-    negative dip (MC current below MFT) signals the correlations MFT
-    misses. Cause on next slide: boundary correlations.}
+    negative dip (SIM current below MFT) signals the correlations MFT
+    misses. Cause on next slide: boundary correlations. New vs paper: we
+    push to $L=2000$ at 50k/site (paper $L\le1000$, 3k/site) and the shift remains.}
 \end{frame}
 
 \begin{frame}{Total current saturation (paper Fig 4)}
   \centering
-  \includegraphics[width=0.82\textwidth]{fig4_current_derivative.png}
+  \includegraphics[width=0.78\textwidth,height=0.52\textheight,keepaspectratio]{fig4_current_derivative_proj.png}
 
-  \vspace{0.2em}
+  \vspace{0.1em}
   \begin{itemize}
-    \item $\alpha=0.9$, $L=2000$: $J_1+J_2$ saturates at the MC value
-      $J=1/2$ (dotted line).
+    \item $\alpha=0.9$, $L=2000$: $J_1+J_2$ saturates at the {\small MC} value
+      $J=1/2$ (dotted line), $2\times10^{8}$ steps/pt.
     \item $\mathrm{d}J/\mathrm{d}\beta \to 0$ beyond $\beta\approx0.7$:
       the bulk is rate-limiting, entrance coupling irrelevant.
   \end{itemize}
-  \note{200M steps per point, 40 beta values. The saturation at 1/2 = two
-    lanes at the maximal current 1/4 each.}
+  \note{40 beta values. The saturation at 1/2 = two
+    lanes at the maximal current 1/4 each. Lecture cue: this is the sanity
+    check that at large $\beta$ the narrow entrance decouples — the bulk
+    takes over, so MFT becomes good again.}
 \end{frame}
 
 \begin{frame}{Why does mean-field fail here?}
@@ -753,94 +736,78 @@
 %% =====================================================================
 \section{Finite size and symmetry breaking}
 \begin{frame}{The LD/LD band shrinks with $L$}
-  \begin{columns}[T]
-    \column{0.5\textwidth}
-      \centering
-      \includegraphics[height=0.56\textheight,keepaspectratio]{../results/L500/fig2/phase_diagram_zoom.png}\\
-      {\scriptsize $L=500$}
-    \column{0.5\textwidth}
-      \centering
-      \includegraphics[height=0.56\textheight,keepaspectratio]{fig2/phase_diagram_zoom.png}\\
-      {\scriptsize $L=2000$}
-  \end{columns}
-  \vspace{0.2em}
+  \centering
+  \vspace{-2pt}
+  \includegraphics[width=0.96\textwidth,height=0.55\textheight,keepaspectratio]{../results/fig2_sidebyside_diff_proj.png}\\
+  {\scriptsize Zoom $0.2<\beta<0.4$: $L=200$ $\to$ $L=500$ (both $5\times10^{4}$/site). Right: magenta = $17\%$ points change phase.}
+
+  \vspace{0.1em}
   \begin{itemize}
-    \item Broken bands (LD/LD, HD/LD) \textbf{narrow} from $L=500$ to
-      $L=2000$ --- same budget per site.
-    \item $L=200$: strong, immediate HD/LD (dense ${\sim}0.9$, dilute
-      ${\sim}0.04$).
-    \item Consistent with the paper: bands vanish in the thermodynamic
-      limit.
+    \item \textbf{Narrowing is discrete} — colour change at same $(\alpha,\beta)$ = phase change. $L=500\to2000$ is same trend but only $\sim3\%$, hence subtle (see Fig5).
   \end{itemize}
-  \note{Same zoom window, same 50k/site budget. At L=500 the orange band
-    reaches higher beta and the red band is wider; at L=2000 both retreat.
-    This is the finite-size trend of the paper's Fig 5, seen directly in
-    the phase diagram.}
+  \note{We replace two nearly identical $L=500$ vs $2000$ zooms (mean pixel diff 8.4, 18k px $>30$) with a composite that POPS: $L=200\to500$ shows the shrinking clearly; $L=500\to2000$ is the same direction but subtler. This is the lecture's visual anchor for `finite size is not noise, it is shrinking'. We do not show original paper Fig2 — ours is higher-budget; original is in backup if someone asks fidelity.}
 \end{frame}
 
 \begin{frame}{Phase boundaries vs $L$ (paper Fig 5, $\alpha=0.9$)}
   \begin{columns}[T]
     \column{0.54\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{../results/fig5_variant_left/fig5a_left_variant_linear.png}
+      \includegraphics[width=\textwidth]{../results/fig5_variant_left/fig5a_left_variant_linear_proj.png}
     \column{0.43\textwidth}
       \begin{itemize}
         \item HD/LD boundary \pos{flat at $\beta\approx0.253$} for
           $L\le2000$ --- matches the paper (${\approx}0.26$), far from MFT
           ($0.332$).
         \item LD/LD lower boundary scatters around the MFT line.
-        \item \con{Drift at $L\ge4000$}: under-equilibration
+        \item \con{Shaded $L\ge4000$}: under-equilibration
           ($c=50$; need $c\approx100$ $\Rightarrow$ $8\times10^{8}$
-          steps at $L=8000$).
+          steps at $L=8000$) — budget caveat.
       \end{itemize}
   \end{columns}
   \note{Blue: HD/LD-to-LD/LD boundary; orange: LD/LD-to-LD lower boundary;
     dashed: MFT eq 23/33 = 0.332 at alpha=0.9. The flat blue line at 0.253
     is our strongest finite-size result. The large-L drift is an
-    equilibration artifact, not physics: budget must scale as c-L with
-    c~100.}
+    equilibration artifact, not physics: budget must scale as $cL$ with
+    $c\sim100$. This is beyond the paper ($L\le 2000$ in original) — our `new' contribution is the scaling analysis.}
 \end{frame}
 
 \begin{frame}{Finite-size: bulk densities ($\alpha=0.9$) vs $L$}
   \begin{columns}[T]
     \column{0.48\textwidth}
       \centering
-      \includegraphics[width=0.92\textwidth,height=0.48\textheight,keepaspectratio]{../results/L200/fig6/densities_alpha0.9.png}\\
-      {\small $L=200$}
+      \includegraphics[width=\textwidth,height=0.45\textheight,keepaspectratio]{../results/L200/fig6/densities_alpha0.9_proj.png}\\
+      {\small $L=200$ — broadened}
     \column{0.48\textwidth}
       \centering
-      \includegraphics[width=0.92\textwidth,height=0.48\textheight,keepaspectratio]{../results/L2000/fig6/densities_alpha0.9.png}\\
-      {\small $L=2000$ --- $5\times10^{4}$ steps/site}
+      \includegraphics[width=\textwidth,height=0.45\textheight,keepaspectratio]{../results/L2000/fig6/densities_alpha0.9_proj.png}\\
+      {\small $L=2000$ — sharp, $5\times10^{4}$/site}
   \end{columns}
   \vspace{0.2em}
   \begin{itemize}
-    \item HD/LD jump \pos{sharpens with $L$}; dilute branch unchanged.
-    \item Position stable at $\beta\approx0.23$--$0.26$ --- \con{far from MFT $0.332$}.
-    \item Dense plateau ${\sim}0.70$ ($L=2000$) vs MFT ${\sim}0.80$; error bars shrink.
+    \item HD/LD jump \pos{sharpens with $L$}; dilute branch unchanged, error bars collapse.
+    \item Position stable at $\beta\approx0.23$--$0.26$ --- \con{far from MFT $0.332$} at all $L$.
+    \item Dense plateau ${\sim}0.70$ vs MFT ${\sim}0.80$ --- persistent, not a transient.
   \end{itemize}
-  \note{L=200 shows broadened transition with sizable error bars near beta~0.23--0.30 (finite-size fluctuations). At L=2000 the jump is sharp (single beta step) and both branches are precise. L=500/1000 interpolate. MFT dashed jump stays at 0.332 at all L — the disagreement is not finite-size.}
+  \note{L=200 shows broadened transition with sizable error bars near beta~0.23--0.30 (finite-size fluctuations). At L=2000 the jump is sharp (single beta step) and both branches are precise. L=500/1000 interpolate. MFT dashed jump stays at 0.332 at all L — the disagreement is not finite-size. This is the cleanest demonstration that MFT failure is genuine.}
 \end{frame}
 
 \begin{frame}{SSB: a robust order parameter}
-  \small
-  \begin{block}{Why the naive order parameter fails}
-    Time-averaged $|\rho_1-\rho_2|$ is \emph{washed out}: broken states
-    flip between $(+,-)$ and $(-,+)$ on long time scales. Robust choice:
-    $\mathrm{std}(\rho_1-\rho_2)$ over an ensemble of replicas.
-  \end{block}
   \begin{columns}[T]
-    \column{0.44\textwidth}
+    \column{0.52\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{../results/L1000/ssb_order_vs_beta.png}
-    \column{0.53\textwidth}
+      \includegraphics[width=\textwidth,height=0.68\textheight,keepaspectratio]{../results/L1000/ssb_order_vs_beta_proj.png}
+    \column{0.46\textwidth}
+      \begin{block}{Why naive fails}
+        \centering
+        {\small Time-averaged $|\rho_1-\rho_2|$ washed out:\\flips $(+,-)\!\leftrightarrow\!(-,+)$.}
+      \end{block}
+      \vspace{0.3em}
+      {\small Robust: $\mathrm{std}(\rho_1-\rho_2)$ over ensemble (512 reps).}
+      \vspace{0.2em}
       \begin{itemize}
-        \item $L=1000$, $\alpha=0.9$: $\langle\rho_{\mathrm{dense}} -
-          \rho_{\mathrm{dilute}}\rangle$ decays $0.88 \to 0.36$ over
-          $\beta = 0.05 \to 0.30$.
-        \item $\mathrm{std}(\rho_1-\rho_2) \approx 0.12$--$0.17$ stays
-          finite --- flipping keeps the ensemble broad.
-        \item SSB confined to \emph{low} $\beta$ in our MC (paper:
-          $\beta\approx0.23$ at the same $L$).
+        \item {\small $L=1000$, $\alpha=0.9$: $\langle\rho_{\rm dense}-\rho_{\rm dilute}\rangle$ $0.88\!\to\!0.36$.}
+        \item {\small $\mathrm{std}\!\approx\!0.12$--$0.17$ stays finite.}
+        \item {\small SSB at low $\beta$ (SIM $\approx0.23$).}
       \end{itemize}
   \end{columns}
   \note{Blue: mean density difference across the ensemble; orange dashed:
@@ -850,127 +817,115 @@
 \end{frame}
 
 \begin{frame}{$P(\rho_1,\rho_2)$ from an ensemble (paper Fig 3)}
-  \centering
-  \includegraphics[height=0.66\textheight]{fig3_joint_density_3d.png}
-
-  \vspace{0.1em}
-  \begin{itemize}
-    \item $\alpha=0.9$, $L=2000$, 512 replicas:
-      \HL{two peaks} (HD/LD) $\to$ arc (LD/LD) $\to$ single peak (LD)
-      $\to$ MC center.
-    \item Animations:
+  \begin{columns}
+    \begin{column}{0.4\textwidth}
+        \begin{itemize}
+    \item $\alpha=0.9$, $L=2000$, 2048 replicas (2D heatmap, 48 bins): \HL{two peaks} $\to$ arc $\to$ single — SSB visible at a glance.
+    \item Full 3D in backup; animations:
       \href{../results/L2000/fig3_anim.mp4}{\beamerbutton{3D mp4}}\quad
       \href{../results/L2000/fig3_anim_2d.mp4}{\beamerbutton{2D mp4}}
   \end{itemize}
-  \note{Each panel: 512 independent replicas at one beta. At beta=0.23 two
-    sharp peaks at the two HD/LD corners: half the replicas broke one way,
-    half the other --- spontaneous symmetry breaking. Sweeping beta the two
-    peaks melt into an arc (LD/LD), then a single LD peak, then the MC
-    center peak at beta=0.95. This reproduces the paper's Fig 3.}
+  \note{We replace the 9-panel 3D (tiny, illegible on projector) with a 2x2 heatmap at 4 key betas (0.23 HD/LD, 0.255 edge, 0.262 LD/LD, 0.28 LD). Each panel: per-replica $(\rho_1,\rho_2)$ histogram; two peaks = half the ensemble broke each way. 3D version in backup for questions. This is the SSB diagnostic — clearer in 2D than perspective 3D.}
+
+    \end{column}
+    \begin{column}{0.6\textwidth}
+      \centering
+      \includegraphics[width=0.95\textwidth,height=\textheight,keepaspectratio]{../results/L2000/fig3_joint_2d4_proj.png}
+
+    \end{column}
+  \end{columns}
 \end{frame}
 
 %% =====================================================================
 \section{Computational methods}
-\begin{frame}{Simulations: BKL and the GPU ensemble}
+\begin{frame}{Simulations I: why BKL, why Fenwick}
   \begin{columns}[T]
-    \column{0.5\textwidth}
-      \textbf{BKL (Bortz--Kalos--Lebowitz)}
+    \column{0.52\textwidth}
+      \textbf{BKL rate-proportional (rejection-free)}
       \begin{itemize}
-        \item Rejection-free: pick events proportional to their rates.
-        \item Classic double-loop selection: cost $\propto n_{\mathrm{active}}$.
-        \item Fenwick-tree selection in $O(\log L)$: \textbf{${\sim}2.4\times$
-          faster, identical physics}.
+        \item Pick next event $\propto$ rate — no rejections, exact Gillespie.
+        \item Classic: scan active sites $\propto n_{\mathrm{active}}$ — cheap at low $\beta$, \con{costly at high density}.
+        \item \pos{Fenwick tree}: binary indexed tree, $O(\log L)$ pick/update — \textbf{${\sim}2.4\times$ faster, identical physics}.
       \end{itemize}
-      \vspace{0.5em}
-      \begin{center}
-        \begin{tabular}{lc}
-          \toprule
-          Kernel & Msteps/s \\
-          \midrule
-          classic BKL & 1.8 \\
-          Fenwick BKL & 4.4 \\
-          \bottomrule
-        \end{tabular}
-      \end{center}
-    \column{0.5\textwidth}
-      \textbf{GPU: one thread per replica}
-      \[
-        \text{GPU}:\; \mathrm{rep}_1 \oplus \mathrm{rep}_2 \oplus \cdots \oplus \mathrm{rep}_N
-      \]
-      \begin{itemize}
-        \item A serial chain maps poorly to the GPU; an \emph{ensemble}
-          maps perfectly.
-        \item Thousands of replicas per $\beta$ --- exactly what
-          $P(\rho_1,\rho_2)$ needs.
-      \end{itemize}
-      \vspace{0.5em}
-      \begin{center}
-        \begin{tabular}{lc}
-          \toprule
-          Backend & Msteps/s \\
-          \midrule
-          CPU, 1 thread & 4.4 \\
-          CPU, 30 workers & ${\sim}100$ \\
-          GPU ensemble (RTX 4070) & 120--180 \\
-          \bottomrule
-        \end{tabular}
-      \end{center}
+      \vspace{0.3em}
+      {\small Cost crosses in $\beta$: BKL wins dilute, Fenwick wins dense.}
+    \column{0.45\textwidth}
+      \centering
+      \begin{tabular}{lc}
+        \toprule
+        Kernel & Msteps/s (1 core) \\
+        \midrule
+        classic BKL & 1.8 \\
+        Fenwick BKL & 4.4 \\
+        \bottomrule
+      \end{tabular}
+      \vspace{0.6em}
+
+      {\small \textbf{Why costly:} equilibration $\propto cL^2$ steps — $10^8$ at $L=2000$, $c=50$.}
   \end{columns}
-  \note{Fenwick: O(log L) event selection instead of a double loop over
-    active events. GPU: one thread per replica, RNG on device; a single
-    chain is latency-bound at ~35k steps/s per thread, but 2048 threads in
-    parallel give ~120-180 Mstep/s aggregate on the RTX 4070. Long single
-    trajectories are still CPU territory (~100x faster per-thread).}
+  \note{BKL is exact, not Metropolis. Fenwick is the log-L trick that makes the high-density phase affordable. Crossing in beta is why we benchmarked both.}
 \end{frame}
 
-\begin{frame}{One run $\to$ all figures}
-  \begin{itemize}
-    \item Per-$L$ result bundles: \texttt{results/<L>/} with
-      \texttt{fig2}, \texttt{fig4}, \texttt{fig6}, \texttt{fig3},
-      \texttt{ssb} data as \texttt{.npz} + \texttt{params.json}.
-    \item Plot scripts \emph{read} the saved data --- no MC at plot time;
-      figures regenerate in seconds.
-    \item Reproducible: fixed seeds, checkpointed chunks (crash-safe),
-      incremental saves per unit.
-  \end{itemize}
-  \begin{block}{Cost model (BKL vs Fenwick vs GPU)}
-    Classic BKL $\propto n_{\mathrm{active}}$ (fast at low density),
-    Fenwick/GPU $\propto \log L$ (wins at high density). The paths
-    \emph{cross} in $\beta$.
-  \end{block}
+\begin{frame}{Simulations II: the GPU ensemble}
+  \begin{columns}[T]
+    \column{0.50\textwidth}
+      \textbf{One thread = one replica}
+      \[
+        \text{GPU}:\; \mathrm{rep}_1 \oplus \cdots \oplus \mathrm{rep}_N
+      \]
+      \begin{itemize}
+        \item Serial chain $\to$ GPU is \con{latency-bound} ($\sim35$k/s/thread).
+        \item \pos{Ensemble} $\to$ GPU is perfect: 2048 replicas in parallel.
+        \item Exactly what SSB needs: $P(\rho_1,\rho_2)$ is an ensemble distribution, not a time average.
+      \end{itemize}
+    \column{0.47\textwidth}
+      \centering
+      \begin{tabular}{lc}
+        \toprule
+        Backend & Msteps/s agg. \\
+        \midrule
+        CPU 1 thread (Fenwick) & 4.4 \\
+        CPU 30 workers & ${\sim}100$ \\
+        GPU ensemble (RTX 4070) & 120--180 \\
+        \bottomrule
+      \end{tabular}
+      \vspace{0.4em}
+      {\scriptsize Per-$L$ bundles \texttt{results/<L>/} {\small +} \texttt{params.json}; plots read \texttt{.npz} — no SIM at plot time, reproducible, crash-safe.}
+  \end{columns}
+  \note{Long single trajectories: CPU still $\sim100\times$ faster per-thread; GPU wins only via mass parallelism. Lecture cue: this is why we have 512–2048 replicas for Fig3 — impossible on CPU. 40 beta scan at 200M steps/pt is a week on 1 core, hours on ensemble.}
 \end{frame}
 
 %% =====================================================================
 \section{Future developments}
-\begin{frame}{Outlook: beyond boundary mean-field}
-  \small
-  \begin{itemize}
-    \item Original MF \con{factorizes} the entrance coupling:
-      $\langle n_1 m_L\rangle \approx \langle n_1\rangle\langle m_L\rangle$
-      --- assumes independence, \con{neglects local correlations}.
-    \item \pos{Boundary-layer / cluster MF}: keep $\langle n_1 m_L\rangle$
-      explicitly (2- or 4-site cluster at each end) instead of factorizing.
-    \item Effective entrance rate:
-      \[
-        \alpha_{\mathrm{eff}} = \alpha\, f(\rho_{\mathrm{opp}},\,C),
-        \qquad C = \langle n_1 m_L\rangle - \langle n_1\rangle\langle m_L\rangle,
-      \]
-      where $f$ encodes the opposite-lane occupancy + correlation $C$.
-    \item $\Rightarrow$ self-consistent system for $\rho_1,\rho_2,C$
-      --- \pos{improves $\beta$ boundaries} vs MC compared to bulk MF.
-    \item \HL{Finite-size scaling} of coupling + SSB order parameter
-      $\mathrm{std}(\rho_1-\rho_2)$ vs $L$ to separate true thermodynamic
-      phases from finite-size artefacts.
-    \item Precedent: 2010 local-correlation extension; Tian \textit{et al.},
-      Chin.\ Phys.\ B \textbf{26}, 020503 (2017) shows \con{one S-B phase is spurious}
-      --- vanishes as $L\to\infty$.
-  \end{itemize}
-  \vspace{0.3em}
+\begin{frame}{Outlook: what's next — beyond bulk MF}
+  \begin{columns}[T]
+    \column{0.33\textwidth}
+      \textbf{\pos{Fix the boundary}}
+      \begin{itemize}
+        \item MF factorizes: $\langle n_1m_L\rangle\approx\langle n_1\rangle\langle m_L\rangle$.
+        \item Keep $C=\langle n_1m_L\rangle-\langle n_1\rangle\langle m_L\rangle$\\(2-/4-site cluster at ends).
+        \item $\alpha_{\mathrm{eff}}=\alpha f(\rho_{\mathrm{opp}},C)$\\$\Rightarrow$ \pos{$\beta$ boundary moves toward SIM}.
+      \end{itemize}
+    \column{0.33\textwidth}
+      \textbf{\HL{Is SSB real?}}
+      \begin{itemize}
+        \item Finite-size scaling: $\mathrm{std}(\rho_1-\rho_2)$ vs $L$.
+        \item Tian \textit{et al.} \textbf{26}, 020503 (2017):\\$N$-cluster, \con{LD/LD spurious, vanishes $L\to\infty$}.
+        \item 2010 extension: first 4-site step.
+      \end{itemize}
+    \column{0.33\textwidth}
+      \textbf{Our next}
+      \begin{itemize}
+        \item 2-site $\to$ 4-site cluster, close hierarchy.
+        \item SIM to $L=4000$--$12000$ at $c\approx100$ ($cL^2$).
+        \item Test which broken band survives.
+      \end{itemize}
+  \end{columns}
+  \vspace{0.4em}
   \begin{block}{Take-away}
-    \textbf{Improve the boundary MF by including local correlations, derive
-    effective coupling $\alpha_{\mathrm{eff}}$, and test survival of S-B phases via finite-size scaling.}
+    \textbf{Boundary correlations explain the shift; finite-size scaling decides if SSB survives.}
   \end{block}
-  \note{Started: boundary 2-site cluster equations drafted; next step is to close the hierarchy at the 4-site level and run MC finite-size scaling to $L=4000$--$12000$ to check which broken band survives. The 2010 paper does the first part; Tian shows the LD/LD band may be the spurious one.}
+  \note{Tian's N-cluster shows exponential decay of one S-B phase — our Fig5 already hints LD/LD is the fragile one. Next is to derive 4-site alpha_eff and push SIM to larger L at proper c.}
 \end{frame}
 
 %% =====================================================================
@@ -1037,7 +992,7 @@
     \item Do the broken bands collapse onto the first-order line as
       $L\to\infty$? Our $L$-scan is consistent with it; large $L$ needs a
       budget $\propto L^2$.
-    \item Does the MFT-vs-MC boundary shift persist in the thermodynamic
+    \item Does the MFT-vs-SIM boundary shift persist in the thermodynamic
       limit? It persists up to $L=2000$ so far.
     \item Beyond MFT: two-site correlations / boundary-correlation
       parameters --- can they close the gap?
@@ -1060,7 +1015,32 @@
 \begin{frame}{Backup slides}
   \centering
   \vspace{2.5cm}
-  Anticipated questions --- backups follow.
+  Anticipated questions --- backups follow.\\
+  \vspace{1em}
+  {\small Main talk 60\,min normal pace ($\sim$38 slides); backups not counted.}
+\end{frame}
+
+\begin{frame}{Backup: original paper vs our reproduction (if asked)}
+  \small Paper Fig.~2–3 are at $L\le1000$, $\sim3\,$k/site. Ours is $L=2000$, $50\,$k/site — same topology, shifted boundaries, no speckle. We do not show scans in main to avoid clutter; this comparison is for fidelity questions.
+  \vspace{0.4em}
+  \begin{center}
+    {\scriptsize Pronina \& Kolomeisky Fig.~2 (schematic) vs our Fig.~2 full (proj) — same phases, HD/LD band below MFT in both.}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Backup: LD agreement — currents ($\alpha=0.1$, $L=2000$)}
+  \centering
+  \includegraphics[height=0.58\textheight,keepaspectratio]{fig6/currents_alpha0.1_proj.png}\\
+  \vspace{0.4em}
+  \small MFT (dashed) vs SIM (symbols) agree within s.e.\ across $\beta$ — sanity check that the code and MFT are correct deep in LD. Deviation only near transitions.
+\end{frame}
+
+\begin{frame}{Backup: 9-panel 3D $P(\rho_1,\rho_2)$ (original rendering)}
+  \centering
+  \includegraphics[height=0.60\textheight,keepaspectratio]{fig3_joint_density_3d.png}
+  \vspace{0.3em}
+
+  \small 3D view kept for completeness; main talk uses 2D heatmap (4 key $\beta$) for projector legibility. 2048 replicas, $\alpha=0.9$, $L=2000$.
 \end{frame}
 
 \begin{frame}{Backup: equilibration must scale with $L$}

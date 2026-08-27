@@ -31,6 +31,10 @@
 - `fig5` large `L` drift `0.229`/`0.182` vs paper `0.26` — `50k/site` `c=50` insufficient for `L8000` (`c=100` → `800M` needed, `theory/fig5_hdld_equilibration.md` calibration `100M` saturates `dense~0.89` at `L=1000`).
 - `home/alessio` `os.makedirs` at `import` mocked, `ffmpeg` via `imageio-ffmpeg` `→ .venv/bin/ffmpeg`.
 
+### TODO (added 28 Aug) — for slide 46 / outlook
+- [ ] New-papers digest done: `theory/new_papers_summary.md:1` (Xiao 2010 cluster $C$ + Tian 2017 $N$-cluster spurious LD/LD). Use its one-liners in outlook (slide 36) and speaker notes — no need to read papers.
+- [ ] Slide 46 backup: consider adding a 1-slide “New papers at a glance” figure (2 columns: 2010 $C$ shift vs 2017 exponential LD/LD) if asked.
+
 ### Handoff — copy/paste into a NEW session (analysis part after theory)
 
 Paste this as the first user message of the new chat:
