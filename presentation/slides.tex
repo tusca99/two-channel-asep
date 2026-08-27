@@ -942,6 +942,39 @@
 \end{frame}
 
 %% =====================================================================
+\section{Future developments}
+\begin{frame}{Outlook: beyond boundary mean-field}
+  \small
+  \begin{itemize}
+    \item Original MF \con{factorizes} the entrance coupling:
+      $\langle n_1 m_L\rangle \approx \langle n_1\rangle\langle m_L\rangle$
+      --- assumes independence, \con{neglects local correlations}.
+    \item \pos{Boundary-layer / cluster MF}: keep $\langle n_1 m_L\rangle$
+      explicitly (2- or 4-site cluster at each end) instead of factorizing.
+    \item Effective entrance rate:
+      \[
+        \alpha_{\mathrm{eff}} = \alpha\, f(\rho_{\mathrm{opp}},\,C),
+        \qquad C = \langle n_1 m_L\rangle - \langle n_1\rangle\langle m_L\rangle,
+      \]
+      where $f$ encodes the opposite-lane occupancy + correlation $C$.
+    \item $\Rightarrow$ self-consistent system for $\rho_1,\rho_2,C$
+      --- \pos{improves $\beta$ boundaries} vs MC compared to bulk MF.
+    \item \HL{Finite-size scaling} of coupling + SSB order parameter
+      $\mathrm{std}(\rho_1-\rho_2)$ vs $L$ to separate true thermodynamic
+      phases from finite-size artefacts.
+    \item Precedent: 2010 local-correlation extension; Tian \textit{et al.},
+      Chin.\ Phys.\ B \textbf{26}, 020503 (2017) shows \con{one S-B phase is spurious}
+      --- vanishes as $L\to\infty$.
+  \end{itemize}
+  \vspace{0.3em}
+  \begin{block}{Take-away}
+    \textbf{Improve the boundary MF by including local correlations, derive
+    effective coupling $\alpha_{\mathrm{eff}}$, and test survival of S-B phases via finite-size scaling.}
+  \end{block}
+  \note{Started: boundary 2-site cluster equations drafted; next step is to close the hierarchy at the 4-site level and run MC finite-size scaling to $L=4000$--$12000$ to check which broken band survives. The 2010 paper does the first part; Tian shows the LD/LD band may be the spurious one.}
+\end{frame}
+
+%% =====================================================================
 \section{Conclusions \& Outlook}
 \begin{frame}{Summary}
   \begin{itemize}
@@ -985,6 +1018,18 @@
       \emph{A new algorithm for Monte Carlo simulation of Ising spin
         systems},
       J.~Comput.\ Phys.\ \textbf{17}, 10 (1975).
+    \bibitem{xiao2010}
+      S.~Xiao, J.~J.~Cai, F.~Liu, M.~Z.~Liu,
+      \emph{Effect of unequal injection rates and different hopping rates
+        on asymmetric exclusion processes with junction},
+      Chin.\ Phys.\ B \textbf{19}, 090202 (2010) --- vertical cluster MF
+      with local boundary correlations.
+    \bibitem{tian2017}
+      B.~Tian, R.~Jiang, M.~B.~Hu, B.~Jia,
+      \emph{Spurious symmetry-broken phase in a bidirectional two-lane ASEP
+        with narrow entrances},
+      Chin.\ Phys.\ B \textbf{26}, 020503 (2017) --- $N$-cluster, exponential
+      decay; one S-B phase vanishes as $L\to\infty$.
   \end{thebibliography}
 \end{frame}
 
