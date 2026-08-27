@@ -1,21 +1,15 @@
 # TODO — Two-Channel ASEP
 
-## Current State (23 Aug 2026) — PRESENTATION DONE, ready for push
-**Revise done, 4h window used, all high-budget runs with 30 workers, CPU only (no GPU overflow). Presentation 2nd half rebuilt (42 frames, xelatex clean, visual-checked).**
+## Current State (27 Aug 2026) — PRESENTATION 44pp, audited, ready for push
+**Revise done 23 Aug (4h), recheck 27 Aug: data-integrity fix, programmatic + vision audit clean.**
 
-### Presentation (done 23 Aug evening)
-- `presentation/slides.tex` rebuilt after theory (~frame 22): all figures now point to
-  `results/L2000|L500|L1000|L200` high-budget data (old `results/gpu/` paths were dead).
-- New frames: MC runs table (c·L rule), MC-vs-MFT L2000 fig2, fig6 trio L2000,
-  HD/LD transition densities (jump 0.23 vs MFT 0.332), transition-position deviation,
-  fig4 L2000 (J1+J2 → 1/2, dJ/dβ → 0), L500-vs-L2000 band shrinking, fig5a variant 6L,
-  SSB order parameter (L1000 explicit path — graphicspath picks L500 otherwise!),
-  fig3 ensemble L2000 512 replicas + mp4 buttons, References, Thank-you, 2 backups.
-- Replaced missing `figures/tasep_*.png` with TikZ phase diagram + pgfplots J(β).
-- Skill compliance: 0 `\pause`, semantic colors `\pos/\con/\HL`, 10pt, author set.
-- `\movie` removed (pdfmark undefined under XeLaTeX) → poster + `\href` to mp4.
-- Compile: `cd presentation && xelatex slides.tex` ×2 — 0 err, 0 overfull, 42 pp.
-- beamer skill installed at `.opencode/skills/beamer/` (auto-loads next session).
+### Presentation (done 27 Aug)
+- `presentation/slides.tex` 44 pp (was 42), `xelatex` ×2: 0 err, 0 overfull h/vbox, 0 `\pause`, semantic colors, 10pt, graphicspath `L2000>L500>L1000>L200`.
+- **Fix 27 Aug (frame 27, `mft_mc_deviation`)**: caption L=200→L=2000, recomputed from `L2000/fig6` npz: dev ≈0 deep, ~0.04 dips, HD/LD 0.23 vs MFT 0.33 (papers: `scripts/plot_mft_vs_mc.py`, cross-checked npz). Recompiled clean.
+- After theory (~frame 22): all figures `results/L2000|L500|L1000|L200` high-budget 50k/site (old `results/gpu/` dead, replaced `figures/tasep_*.png` with TikZ/pgfplots, `\movie`→poster+`\href`).
+- Frames: MC runs table (c·L), MC-vs-MFT L2000 fig2, fig6 trio, HD/LD jump, deviation, fig4 L2000, L500-vs-L2000 band, fig5a 6L, SSB L1000 (explicit), fig3 512 replicas + mp4, References, Thank-you, 2 backups ✅.
+- Skill `.opencode/skills/beamer/` installed, verified identical to `Noi1r/beamer-skill` (SKILL.md diff clean).
+- Vision path: local `gemma4:e4b` hung/empty (4-worker contention bug + 500tok think); pulled `gemma4:31b-cloud` (ollama cloud) → 3 tok/page, 2 min for 44pp audit.
 
 ### Done in this revise (23 Aug, commits 8170bfb, a76974c, a50c805, 67b0df5)
 - **fig5** `scatter` `o`/`s` `ls="none"` `set_xticks(Ls)` `NullLocator` — no overlapping `2×10²` ticks, no misleading line (`scripts/fig5_corrected.py:183` `results/fig5_corrected/fig5_phase_boundary_vs_L.png:1` `69K`)
@@ -28,16 +22,34 @@
 - **GPU test** `fig3 L500` `9216` `threads` `25M` `230B` saved to `/tmp/opencode/fig3_L500_gpu_test.log:1` for comparison, final `CPU` used as requested (no `GPU` overflow `cuda_ensemble.py:357` `var` `overflow`)
 - **Commit** `a76974c` `67b0df5` `a50c805` `8170bfb` (no push, `VSCode`)
 
-### Next: Presentation 2nd half (MC vs MFT, SSB, finite-size)
-- Theory done (90%). Need to update `presentation/slides.tex:596` `fig2` `fig5` `fig6` `fig3` `ssb` frames to point to `results/L2000`/`L500` high-budget `50k/site` figures (currently `../results/gpu/` and `../results/L1000`).
-- Add `L2000` comparison slide: `fig2` `L500` vs `L2000` `LD/LD` shrinking, `fig5` variant `6` `L`, `fig3` `L500` ` dense 0.449` at `0.2595`.
-- Verify `fig6` currents `α=0.1` `0.8` `0.9` for `L2000` match `MFT` at low `α,β` (as in `slides.tex:633`).
-- Add `fig4` `L2000` `dJ/dβ` saturation at `0.5` for `LD/MC`.
+### Next: Post-theory analysis — full results/figure review + new ToC (needs new session)
+- **Handoff prompt at bottom of file** — next session must: load beamer skill, vision via `gemma4:31b-cloud` (ollama cloud, ~2 min/44pp, local `e4b` unreliable), inspect every `results/L*/` figure, propose a revised analysis ToC (structure, cuts, new comparisons).
+- Theory done except remaining `\scriptsize` density flags on frames 13/14/18–20 (6 frames with >2 display eqs, beamer-mandated split candidate).
 
 ### Notes
 - `L2000` bundle `fig2` `100M` `+ fig4` `200M` `+ fig6` `100M` `CPU 30` `~37m` done `18:26`, `fig3` `L500` `22m` `fig3` `L1000` `93m` `09:50` done, `fig3` `L2000` `75K` done.
 - `fig5` large `L` drift `0.229`/`0.182` vs paper `0.26` — `50k/site` `c=50` insufficient for `L8000` (`c=100` → `800M` needed, `theory/fig5_hdld_equilibration.md` calibration `100M` saturates `dense~0.89` at `L=1000`).
 - `home/alessio` `os.makedirs` at `import` mocked, `ffmpeg` via `imageio-ffmpeg` `→ .venv/bin/ffmpeg`.
+
+### Handoff — copy/paste into a NEW session (analysis part after theory)
+
+Paste this as the first user message of the new chat:
+
+```
+You are working on two-channel-asep (Pronina & Kolomeisky J. Phys. A 40, 2275 2007) at /home/alessio/Documenti/two-channel-asep.
+
+Context: presentation/slides.tex is 44 pp, beamer/Madrid, xelatex-clean (0 err/0 overfull). Beamer skill is at .opencode/skills/beamer/ (Noi1r/beamer-skill, SKILL.md identical to GitHub). 27 Aug recheck: frame 27 mft_mc_deviation caption fixed L=200→L=2000 (recomputed from L2000/fig6 npz, ~0.04 dips, 0.23 vs MFT 0.33).
+
+Vision you MUST use (local gemma4:e4b is broken at this load): ollama cloud gemma4:31b-cloud
+— already pulled (ollama list: gemma4:31b-cloud, ef09f235533c). It needs num_predict=700 (think-then-answer) and responds CLEAN vs ISSUE. A working harness is /tmp/opencode/vision_audit.py (API http://localhost:11434/api/generate, base64 images). 44 pp via that model is ~2 min, 3 tok/page. Reference image render: pdftoppm -jpeg -r 110 ... or pdftoppm -gray -r 100 ... . For raw results figures: results/L500 and L2000 fig2 zoom, fig6, fig4, fig5_variant_left, fig3_joint, etc. (check present with: ls results/L*/ and results/L*/fig*/)
+
+Your task (analysis part AFTER theory):
+1) Load the beamer skill (skill tool).
+2) Systematically inspect EVERY results/ figure that the deck currently uses + candidates not yet used. For each, use gemma4:31b-cloud vision on the actual PNG (base64 via python like in vision_audit.py) to assess: what's shown, is it sharp, is the shrink/growth/band actually visible, are axes/legends projector-legible, is there clutter or duplicated content.
+3) Cross-check against data provenance: L2000/fig6 npz for MFT-vs-MC, L500 vs L2000 fig2 grids/pngs (mean abs diff ~1.6, 15.9k px >30, max 61 — same band structure, marker jitter), fig5 6L drift, fig3 512-replica joint densities. Mark stale/underpowered figures (L large c=50 vs needed c=100).
+4) Propose a revised post-theory ToC: section order, keep/cut/replace each slide, new comparisons (e.g. make L500→L2000 shrink POP rather than two nearly-identical zooms), what to drop if talk is 40 vs 60 min, which backup slides to add. Structure your output as: A) Figure-by-figure audit table (figure | verdict | notes) and B) Proposed ToC with per-slide title + figure path + speaker note cue (gate: ask before editing slides.tex).
+5) Constraints to preserve: 10pt, 169, Madrid, \pos/\con/\HL, 0 \pause, graphicspath L2000>L500>L1000>L200, 50k/site budget caveat for L≥4000.
+```
 
 ### Fatto (storico)
 - Kernel Fenwick `4.8 Mstep/s` `30` workers `70GiB` `32` cores, `13/13` tests pass.
