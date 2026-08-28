@@ -37,7 +37,7 @@ def collect():
                                 float(z["tau"]), int(z["n_steps"]))
             if not np.isnan(tau):
                 data[(L, b)] = (tau, steps, False)
-            else:  # no flip -> lower bound, keep the LONGEST run
+            else:  # no flip -> lower bound at the full run length
                 if (L, b) not in data or data[(L, b)][0] < steps:
                     data[(L, b)] = (steps, steps, True)
     return data
