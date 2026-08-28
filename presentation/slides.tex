@@ -843,6 +843,33 @@
 \end{frame}
 
 %% =====================================================================
+\begin{frame}{How long-lived is a broken state? $\tau(L)$}
+  \begin{columns}[T]
+    \column{0.52\textwidth}
+      \centering
+      \includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{../results/tau/tau_L.png}
+    \column{0.44\textwidth}
+      \begin{block}{Key message}
+        \centering
+        \pos{SSB $=$ metastability}: basins live $\tau\sim e^{L/\xi}$ ---\\
+        at large $L$ a run sees \emph{one} basin.
+      \end{block}
+      \begin{itemize}
+        \item {\small Zhu 2012 measured $\tau(L)$ for the \emph{leaky} model ($p>0$); we extend to \pos{$p=0$} at $\alpha{=}0.9$.}
+        \item {\small Band edge ($\beta{=}0.26$): \HL{$\tau\approx1.4{\cdot}10^{4}e^{L/390}$} --- $\times100$ per $1800$ sites.}
+        \item {\small Deep band: no flip in $6{\cdot}10^9$ steps at $L{=}2000$ ($\tau\gtrsim10^{10}$).}
+        \item {\small Explains \con{why bands shrink}: finite runs sample one basin $\Rightarrow$ equilibration needs $c\propto L$.}
+      \end{itemize}
+  \end{columns}
+  \note{tau = median dwell time in one SSB basin (|rho1-rho2| above threshold), single long
+    trajectories, alpha=0.9. Triangles = no flip within the run -> lower bound. Method from
+    Zhu Fig 3 (leaky model, p>0, alpha=0.5); ours: p=0 (original Pronina model), beta-ladder
+    0.18/0.22/0.26. Band edge measured: tau ~ 1.4e4 * exp(L/390). Cue: at L=2000 a run of
+    1e9 steps samples a single basin -- that is exactly why fig5 needs c*L steps/site, and why
+    ensemble std(rho1-rho2) stays finite while time-averaged |rho1-rho2| washes out.}
+\end{frame}
+
+%% =====================================================================
 \section{Computational methods}
 \begin{frame}{Simulations I: why BKL, why Fenwick}
   \begin{columns}[T]

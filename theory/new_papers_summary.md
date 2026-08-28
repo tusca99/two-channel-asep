@@ -66,17 +66,41 @@
 > needs exactly what we have: c≈100 equilibration scaling to L≈10⁴, a few hours on our CPU farm.*
 
 ## Action items for us
-1. Cheap first: rerun the existing fig5(a) L=8000 point at c=100 (~1.3 h) — the current c=50 value
-   (0.182/0.229) is flagged under-equilibrated.
-2. fig5(a) full rerun at c=100, L=4000–20000 (16 β × 6 reps ≈ 8 h at L=20000): does the HD/LD↔LD/LD
-   boundary saturate (~0.26, Pronina's L=1.2·10⁴ value 0.2595) or creep toward Tian's 0.289?
-3. std(ρ₁−ρ₂) vs L at fixed (α, β) inside the band — an MC L-scaling of the band nobody has done.
-4. Flipping time τ vs L (Zhu Fig. 3): exponential τ is the cleanest "SSB real" fingerprint.
+1. ~~Cheap first: rerun the existing fig5(a) L=8000 point at c=100~~ — user decided: enough boundary runs, keep the existing L-scan as is.
+2. ~~fig5(a) full rerun at c=100~~ — cancelled (see 1).
+3. ~~std(ρ₁−ρ₂) vs L in the band~~ — superseded by the τ campaign (done, see below).
+4. **DONE 28 Aug — τ(L) campaign** (`scripts/tau_flipping.py`, `scripts/tau_plot.py`, `results/tau/`):
+   - **Scope (honest):** method reproduced from Zhu 2012 (their Fig. 3 did model A at p>0,
+     α=0.5, β=0.2); we apply it at **p=0** (the original Pronina model — not covered by Zhu's
+     τ analysis), at our **α=0.9** operating point, plus a **β-ladder** (0.18/0.22/0.26).
+     Reproduction + extension, not "nobody did it".
+   - **Detector:** basin projection — in-basin iff |ρ₁−ρ₂| ≥ dmin (0.35 deep band, 0.15 edge);
+     flip = leave one basin, enter the other; τ = median dwell. (First attempt with smoothed
+     sign-crossings failed at the band edge: noise crossings made τ *shrink* with L. Fixed.)
+   - **Results** (single long trajectories, 8700K, α=0.9):
+     | L | β=0.18 | β=0.22 | β=0.26 |
+     |---|---|---|---|
+     | 200 | ≥10⁸ | 2.2·10⁵ | 1.3·10⁴ |
+     | 500 | ≥4·10⁸ | ≥4·10⁸ | 6.5·10⁴ |
+     | 1000 | ≥2·10⁹ | ≥2·10⁹ | 3.8·10⁵ |
+     | 2000 | ≥6·10⁹ | ≥6·10⁹ | 1.7·10⁶ |
+   - **β=0.26 (band edge, measured):** τ ≈ 1.4·10⁴ · exp(L/390) — clean exponential (ξ≈390),
+     ~×100 per 1800 sites. Deep band: zero flips in 6·10⁹ steps at L=2000 → τ ≳ 10¹⁰.
+   - **Key message:** SSB is metastability — basins are exponentially long-lived, so at large L
+     a finite run samples ONE basin: this is *why* the bands shrink in the phase diagram and
+     *why* equilibration needs c∝L. The τ campaign and the fig5 L-scan are the same physics
+     seen two ways.
 5. 4-site (N=4) cluster MF as the next theory step — N≥5 only adds the spurious solution II.
 6. RNG for 10¹¹-draw runs: per-replica counter-based seeding (Philox/Threefry on GPU, or an
    AES-CTR-seeded Trivium bank as in the FPGA-project percolation core — 64 provably independent
    streams, period ≥2¹⁴⁴). Validation precedent: 2-D directed-percolation p_c reproduced to 2e-4 —
    different universality class from ASEP, but a clean end-to-end test of the streams themselves.
 7. α₁≠α₂ extension following Xiao's effective-rate junction method.
+
+**Why α=0.9 everywhere in the SSB analyses:** (i) Pronina & Kolomeisky's Fig. 5(a) boundary is
+drawn at α=0.9 — our fig5 is a direct reproduction at their operating point; (ii) deep in the
+SSB region, both broken phases exist with wide bands (clean signal); (iii) Tian 2017 quotes
+β_c(∞)=0.28871 exactly at α=0.9 — apples-to-apples with their N→∞ extrapolation. The rest of
+the deck (fig2/fig4/fig6) scans the full α-plane; only fig5-type boundary runs + SSB + τ fix α.
 
 **Refs on slide:** `zhu2012` + `tian2017` (primary); `xiao2010` (template for unequal rates).
