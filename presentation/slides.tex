@@ -35,9 +35,9 @@
   %% \note{1 hour talk. Theory-heavy first half (~25 min), results second half.}
 \end{frame}
 
-\begin{frame}{Outline}
-  \tableofcontents
-\end{frame}
+%% \begin{frame}{Outline}
+%%   \tableofcontents
+%% \end{frame}
 
 %% =====================================================================
 \section{Motivation}
@@ -622,12 +622,18 @@
           large $L$.
         \item Fig 4 scan: $2\times10^{8}$ steps/point, 40 $\beta$ values
           ($L=2000$).
+        \item Next: \HL{flipping time $\tau\propto e^{L}$} --- exponential growth
+          (Zhu Fig.~3) is the cleanest \pos{SSB-is-real} fingerprint;
+          needs single long trajectories, \pos{CPU-friendly}.
       \end{itemize}
   \end{columns}
   \note{All results from today's high-budget runs: per-L bundles in
     results/L*, 50k steps/site equilibration everywhere. The c-L rule: the
     SSB dense basin at L=1000 needs ~100k steps/site, so budget must grow
-    linearly with L (total ~ c L^2). $c\approx50$ here; grey shade in Fig5 is exactly where $c=50$ fails.}
+    linearly with L (total ~ c L^2). $c\approx50$ here; grey shade in Fig5 is exactly where $c=50$ fails.
+    Tau(L) add-on: Zhu Fig 3 shows tau grows exponentially with L at fixed (alpha,beta) inside the
+    broken band --- measure first-passage/flipping between the two basins on single long trajectories
+    (CPU Fenwick, one core per trajectory; no replicas needed, time-based statistics instead).}
 \end{frame}
 
 \begin{frame}{Phase diagram: SIM vs MFT ($L=2000$)}
@@ -895,62 +901,63 @@
   \note{Long single trajectories: CPU still $\sim100\times$ faster per-thread; GPU wins only via mass parallelism. Lecture cue: this is why we have 512–2048 replicas for Fig3 — impossible on CPU. 40 beta scan at 200M steps/pt is a week on 1 core, hours on ensemble.}
 \end{frame}
 
+\section{Conclusions \& Outlook}
 %% =====================================================================
-\section{Future developments}
 \begin{frame}{Outlook: what's next — beyond bulk MF}
   \begin{columns}[T]
     \column{0.33\textwidth}
-      \textbf{\pos{Fix the boundary}}
+      \textbf{\pos{Coupling is the engine}}\\{\small Zhu \textit{et al.} PRE \textbf{85}, 041132 (2012)}
       \begin{itemize}
-        \item MF factorizes: $\langle n_1m_L\rangle\approx\langle n_1\rangle\langle m_L\rangle$.
-        \item Keep $C=\langle n_1m_L\rangle-\langle n_1\rangle\langle m_L\rangle$\\(2-/4-site cluster at ends).
-        \item $\alpha_{\mathrm{eff}}=\alpha f(\rho_{\mathrm{opp}},C)$\\$\Rightarrow$ \pos{$\beta$ boundary moves toward SIM}.
+        \item Leaky entrance: inject at $p\alpha$ also if other lane's exit is occupied.
+        \item $p{=}0$ our model, $p{=}1$ decoupled; SSB grows with coupling.
+        \item \pos{Both broken phases die at $p_c\approx0.6$} before $p{=}1$.
+        \item {\small Flipping time $\tau\propto e^{L}$: SSB genuine.}
       \end{itemize}
     \column{0.33\textwidth}
-      \textbf{\HL{Is SSB real?}}
+      \textbf{\HL{Is SSB real at $p{=}0$?}}\\{\small Tian \textit{et al.} CPB \textbf{26}, 020503 (2017)}
       \begin{itemize}
-        \item Finite-size scaling: $\mathrm{std}(\rho_1-\rho_2)$ vs $L$.
-        \item Tian \textit{et al.} \textbf{26}, 020503 (2017):\\$N$-cluster, \con{LD/LD spurious, vanishes $L\to\infty$}.
-        \item 2010 extension: first 4-site step.
+        \item $N$-cluster MF + current minimization: \con{LD/LD should not exist} ($J$ highest in band).
+        \item Boundary vs $N$ decays $\sim e^{aN}$: $\beta_c(\infty)\!=\!0.289$ at $\alpha\!=\!0.9$ (MF 0.332, SIM $\approx$0.25).
+        \item {\small Yet their $L{=}10^4$ MC still sees LD/LD --- verdict open.}
       \end{itemize}
     \column{0.33\textwidth}
       \textbf{Our next}
       \begin{itemize}
-        \item 2-site $\to$ 4-site cluster, close hierarchy.
-        \item SIM to $L=4000$--$12000$ at $c\approx100$ ($cL^2$).
-        \item Test which broken band survives.
+        \item 2-site $\to$ 4-site cluster (Tian: N$\ge$5 adds only spurious sol.~II).
+        \item SIM to $L=4000$--$20000$ at $c\approx100$ ($cL^2$); track $\mathrm{std}(\rho_1{-}\rho_2)$, $\tau(L)$.
+        \item RNG at $10^{11}$ draws: counter-based streams (Philox; AES-CTR Trivium bank).
       \end{itemize}
   \end{columns}
   \vspace{0.4em}
   \begin{block}{Take-away}
-    \textbf{Boundary correlations explain the shift; finite-size scaling decides if SSB survives.}
+    \textbf{Entrance coupling drives SSB; scaling + current minimization decide what survives.}
   \end{block}
-  \note{Tian's N-cluster shows exponential decay of one S-B phase — our Fig5 already hints LD/LD is the fragile one. Next is to derive 4-site alpha_eff and push SIM to larger L at proper c.}
+  \note{60-s cue: the entrance coupling is the SSB engine --- Zhu's leaky entrance (2012) kills both broken phases at $p_c\approx0.6$, so our $p=0$ is where SSB is strongest; his flipping time $\tau\propto e^L$ is the fingerprint. Our $\beta$ boundary disagreement (MFT 0.33 vs SIM 0.25 at $\alpha=0.9$) is an entrance-correlation effect: Tian's $N$-cluster (2017) moves the boundary to 0.289 at $N\to\infty$ --- half the gap closes. Tian's current-minimization argument says the LD/LD band should not exist at all, yet his own $L=10^4$ MC still sees it. The verdict needs exactly what we have: $c\approx100$ equilibration scaling to $L\approx10^4$--$2\cdot10^4$, a few hours on our CPU farm. RNG caveat (Tian's ref [53]): at $10^{11}$+ draws use counter-based streams --- e.g.\ Philox per replica on GPU, or the AES-CTR-seeded Trivium bank from my FPGA percolation core (64 provably independent streams, period $>2^{144}$; validated on a 2-D directed-percolation benchmark --- different universality class, but a clean end-to-end RNG check: $p_c$ reproduced to $2\times10^{-4}$). Xiao 2010 is a Y-junction TASEP --- template only for $\alpha_1\neq\alpha_2$. PDFs: zhu2012/tian2017/xiao2010/pronina2007\_arxiv in theory/.}
 \end{frame}
 
 %% =====================================================================
-\section{Conclusions \& Outlook}
-\begin{frame}{Summary}
-  \begin{itemize}
-    \item Reproduced the two-channel ASEP with narrow entrances: MFT phase
-      diagram, currents, densities, $P(\rho_1,\rho_2)$ --- up to $L=2000$
-      at $5\times10^{4}$ steps/site.
-    \item MFT mechanism: self-consistent effective entrance rates
-      $\Rightarrow$ symmetric LD, MC + broken HD/LD, LD/LD.
-    \item Confirmed the paper's message: \HL{MFT transition positions are
-      not exact} --- HD/LD at $\beta\approx0.25$ vs MFT $0.33$; LD/MC
-      shifted up, deviation growing with $\alpha$.
-    \item Finite size: broken bands shrink with $L$; HD/LD boundary flat
-      at $0.253$ for $L\le2000$.
-    \item SSB characterized robustly: ensemble $\mathrm{std}(\rho_1-\rho_2)$
-      and bimodal $P(\rho_1,\rho_2)$ (512 replicas).
-    \item Fenwick BKL + GPU ensemble (RTX 4070, ${\sim}150$ Msteps/s) make
-      the scans affordable.
-  \end{itemize}
-\end{frame}
+
+%% \begin{frame}{Summary}
+%%   \begin{itemize}
+%%     \item Reproduced the two-channel ASEP with narrow entrances: MFT phase
+%%       diagram, currents, densities, $P(\rho_1,\rho_2)$ --- up to $L=2000$
+%%       at $5\times10^{4}$ steps/site.
+%%     \item MFT mechanism: self-consistent effective entrance rates
+%%       $\Rightarrow$ symmetric LD, MC + broken HD/LD, LD/LD.
+%%     \item Confirmed the paper's message: \HL{MFT transition positions are
+%%       not exact} --- HD/LD at $\beta\approx0.25$ vs MFT $0.33$; LD/MC
+%%       shifted up, deviation growing with $\alpha$.
+%%     \item Finite size: broken bands shrink with $L$; HD/LD boundary flat
+%%       at $0.253$ for $L\le2000$.
+%%     \item SSB characterized robustly: ensemble $\mathrm{std}(\rho_1-\rho_2)$
+%%       and bimodal $P(\rho_1,\rho_2)$ (512 replicas).
+%%     \item Fenwick BKL + GPU ensemble (RTX 4070, ${\sim}150$ Msteps/s) make
+%%       the scans affordable.
+%%   \end{itemize}
+%% \end{frame}
 
 \begin{frame}{References}
-  \vspace{-1.2em}
+  \vspace{-1.8em}
   \small
   \begin{thebibliography}{9}
     \setbeamertemplate{bibliography item}[article]
@@ -972,18 +979,24 @@
       \emph{A new algorithm for Monte Carlo simulation of Ising spin
         systems},
       J.~Comput.\ Phys.\ \textbf{17}, 10 (1975).
+    \bibitem{zhu2012}
+      K.~Zhu, N.~Wang, Q.-Y.~Hao, Y.-Q.~Liu, R.~Jiang,
+      \emph{Weakening interaction suppresses spontaneous symmetry breaking in
+        two-channel asymmetric exclusion processes},
+      Phys.\ Rev.\ E \textbf{85}, 041132 (2012) --- leaky entrance: SSB dies
+      at $p_c\approx0.6$; $\tau\propto e^{L}$.
     \bibitem{xiao2010}
       S.~Xiao, J.~J.~Cai, F.~Liu, M.~Z.~Liu,
       \emph{Effect of unequal injection rates and different hopping rates
         on asymmetric exclusion processes with junction},
-      Chin.\ Phys.\ B \textbf{19}, 090202 (2010) --- vertical cluster MF
-      with local boundary correlations.
+      Chin.\ Phys.\ B \textbf{19}, 090202 (2010) --- Y-junction TASEP
+      (different process).
     \bibitem{tian2017}
       B.~Tian, R.~Jiang, M.~B.~Hu, B.~Jia,
       \emph{Spurious symmetry-broken phase in a bidirectional two-lane ASEP
         with narrow entrances},
-      Chin.\ Phys.\ B \textbf{26}, 020503 (2017) --- $N$-cluster, exponential
-      decay; one S-B phase vanishes as $L\to\infty$.
+      Chin.\ Phys.\ B \textbf{26}, 020503 (2017) --- $N$-cluster + current
+      minimization: LD/LD should not exist; MC at $L=10^4$ sees it.
   \end{thebibliography}
 \end{frame}
 
@@ -1020,7 +1033,7 @@
   {\small Main talk 60\,min normal pace ($\sim$38 slides); backups not counted.}
 \end{frame}
 
-\begin{frame}{Backup: original paper vs our reproduction (if asked)}
+\begin{frame}{Backup: original paper vs our reproduction}
   \small Paper Fig.~2–3 are at $L\le1000$, $\sim3\,$k/site. Ours is $L=2000$, $50\,$k/site — same topology, shifted boundaries, no speckle. We do not show scans in main to avoid clutter; this comparison is for fidelity questions.
   \vspace{0.4em}
   \begin{center}

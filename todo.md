@@ -32,8 +32,11 @@
 - `home/alessio` `os.makedirs` at `import` mocked, `ffmpeg` via `imageio-ffmpeg` `→ .venv/bin/ffmpeg`.
 
 ### TODO (added 28 Aug) — for slide 46 / outlook
-- [ ] New-papers digest done: `theory/new_papers_summary.md:1` (Xiao 2010 cluster $C$ + Tian 2017 $N$-cluster spurious LD/LD). Use its one-liners in outlook (slide 36) and speaker notes — no need to read papers.
-- [ ] Slide 46 backup: consider adding a 1-slide “New papers at a glance” figure (2 columns: 2010 $C$ shift vs 2017 exponential LD/LD) if asked.
+- [x] New-papers digest done — FINAL 28 Aug, all 3 PDFs read in full (`theory/new_papers_summary.md:1`). Zhu 2012 = **leaky entrance** (inject pα when other lane's exit occupied; p=0→Pronina, p=1→decoupled); SSB dies at p_c≈0.6 (SIM)/0.5 (MF); flipping time τ∝e^L (Fig 3). NO 2-site cluster in Zhu (earlier reconstructions from Tian's refs were wrong). Tian 2017: exp decay in **N** (β_c(∞)=0.289 at α=0.9), L=10⁴ MC still sees LD/LD, no L-scan done by anyone. Xiao 2010 = Y-junction TASEP, template for α1≠α2 only.
+  - Papers in theory/: zhu2012_pre.pdf, tian2017_chinphysb.pdf (+arXiv 1605.01817 13pp), xiao2010_chinphysb.pdf, pronina2007_arxiv.pdf. IOP captcha-blocked; cpb.iphy.ac.cn works (`/en/article/pdf/preview/<DOI>.pdf`).
+  - Outlook frame (l.900) final: Zhu "coupling is the engine" / Tian "SSB real at p=0?" / Our-next (4-site, L=4000–20000 c=100, RNG counter-based). References 7 bibitems. Recompiled: 44 pp, 0 err, 0 overfull.
+- [ ] Slide 46 backup: 1-slide "New papers at a glance" (Zhu p_c + τ∝e^L vs Tian β_c(N→∞)=0.289 + L=10⁴ caveat) if asked.
+- [ ] Follow-up sims (new_papers_summary §Action): fig5(a) c=100 L=4000→8000 first (~2 h total), then decide 16000/20000 (~8-10 h); std(ρ1−ρ2) vs L in band; τ(L) first-passage (Zhu fingerprint); 4-site cluster MF; RNG: Philox per-replica GPU or AES-CTR Trivium bank (FPGA-project precedent, p_c validated 0.6047±0.0002).
 
 ### Handoff — copy/paste into a NEW session (analysis part after theory)
 
