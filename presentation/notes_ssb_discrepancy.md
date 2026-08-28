@@ -230,3 +230,89 @@ nearest-neighbour level. The boundary-position deviations we measured
 (`scripts/mf_mc_boundary.py`) are where adding correlation parameters (e.g. an
 effective boundary impurity from the narrow-entrance coupling) would improve
 agreement. But that only matters once the run-length issue above is settled.
+
+---
+
+# 28 Aug session — papers digest, τ(L) campaign, outlook slide
+
+## What was done
+
+1. **Follow-up papers retrieved & read in full** (in `theory/`):
+   - `zhu2012_pre.pdf` — Zhu et al., PRE 85, 041132 (2012)
+   - `tian2017_chinphysb.pdf` — Tian et al., CPB 26, 020503 (2017) (+ arXiv 1605.01817, 13 pp)
+   - `xiao2010_chinphysb.pdf` — Xiao et al., CPB 19, 090202 (2010)
+   - `pronina2007_arxiv.pdf` — the original paper's arXiv preprint (cond-mat/0611472)
+   Full verified digest: `theory/new_papers_summary.md`.
+
+2. **Who studies what (corrected twice — read the PDFs, don't trust secondary sources):**
+   - **Tian 2017 = exactly our model** (same rules). N-cluster MF (N=1..6) + current
+     minimization ⇒ LD/LD "should not exist"; but the exponential decay is in **N (cluster
+     size), NOT L**: β_c(N→∞) = 0.28871 at α=0.9 (vs MF 0.332, vs our SIM ≈0.25). Their MC is a
+     single L=10⁴, which still sees the band. **Nobody has done the MC L-scaling** — our
+     200/500/1000/2000 scan is the only one.
+   - **Zhu 2012 = our model + leaky entrance**: injection at rate pα even when the other lane's
+     exit is occupied (p=0 → Pronina, p=1 → decoupled). Both broken phases die at p_c≈0.6
+     (SIM) / 0.5 (MF) — coupling is the SSB engine, our p=0 is maximal coupling. Plus τ ∝ e^L
+     (their Fig. 3).
+   - **Xiao 2010 = different process** (Y-junction TASEP, α₁≠α₂, p₁,p₂,p₃). No correlator, no
+     SSB. Template only for the α₁≠α₂ extension.
+
+3. **τ(L) campaign (new, 28 Aug)** — `scripts/tau_flipping.py`, `scripts/tau_plot.py`,
+   data `results/tau/`, figure `results/tau/tau_L.png`. New slide inserted after P(ρ₁,ρ₂)
+   ("How long-lived is a broken state?"). Deck now 45 pp, 0 err, 0 overfull. Tests 17/17.
+   Everything committed & pushed (through 7ff618b).
+
+## What is a "basin" (the talk-ready explanation)
+
+In the SSB region the system has two stable broken states: HD/LD (d = ρ₁−ρ₂ > 0) and LD/HD
+(d < 0). Landscape picture: **two valleys**. A **basin** = one valley + the region around its
+minimum; the trajectory wanders inside a valley for a very long time (**dwell**), then makes a
+rare fast crossing over the saddle (**flip**) into the other valley.
+τ = median dwell time in one basin. Detector (final version): in-basin iff |d| ≥ dmin
+(0.35 deep band, 0.15 near edge); flip = leave basin (+), enter basin (−).
+
+**Key message (on the new slide): SSB = metastability.** τ ~ e^{L/ξ} with measured
+ξ ≈ 390 at the band edge (β=0.26): τ ≈ 1.4·10⁴·e^{L/390}, ×100 per 1800 sites.
+Deep band (β=0.18, 0.22): no flip at all in 6·10⁹ steps at L=2000 ⇒ τ ≳ 10¹⁰.
+Consequences, all the same physics: (i) a finite run at large L samples ONE basin → that's
+*why* single runs look symmetry-broken; (ii) equilibration needs c ∝ L steps/site (the fig5
+rule); (iii) ensemble std(ρ₁−ρ₂) is the right order parameter — different replicas land in
+different basins, so time-averaged |ρ₁−ρ₂| washes out but std stays finite.
+
+## τ campaign results (α=0.9, single long trajectories, 8700K)
+
+| L | β=0.18 | β=0.22 | β=0.26 |
+|---|---|---|---|
+| 200 | ≥10⁸ | 2.2·10⁵ | 1.3·10⁴ |
+| 500 | ≥4·10⁸ | ≥4·10⁸ | 6.5·10⁴ |
+| 1000 | ≥2·10⁹ | ≥2·10⁹ | 3.8·10⁵ |
+| 2000 | ≥6·10⁹ | ≥6·10⁹ | 1.7·10⁶ |
+
+- Detector lesson: first attempt (smoothed sign crossings) failed at the band edge — noise
+  crossings near d≈0 made τ *shrink* with L. Basin projection (threshold on |d|) fixed it.
+- Figure: log-log τ vs L; ▽ = "no flip" lower bound (marker at the run length, true τ above).
+  β=0.18 is entirely lower bounds; β=0.22 measured only at L=200.
+- Scope honesty (user's correction): method reproduced from **Zhu Fig. 3** (done for their
+  leaky model A at p>0, α=0.5); we extend to **p=0** (original Pronina model — not covered by
+  Zhu), at α=0.9, plus the β-ladder. Reproduction + extension, NOT "nobody did it".
+
+## Why α=0.9 in all the SSB analyses
+
+(i) Pronina & Kolomeisky's Fig. 5(a) boundary is drawn at α=0.9 → our fig5 reproduces *their*
+figure at *their* operating point. (ii) Deep in the SSB region: wide broken bands, clean
+signal. (iii) Tian 2017 quotes β_c(∞)=0.28871 exactly at α=0.9 → apples-to-apples with their
+N→∞ extrapolation. The full α-plane scans (fig2/fig4/fig6) are unchanged — only the
+boundary/SSB/τ runs pin α=0.9.
+
+## RNG caveat (Tian's ref [53]) — noted on the outlook slide
+
+At 10¹¹+ draws, PRNG artifacts become a real worry. Plan: per-replica counter-based streams
+(Philox on GPU) or the AES-CTR-seeded Trivium bank from the FPGA-project percolation core
+(64 provably independent streams, period ≥2¹⁴⁴). Validation precedent there: 2-D
+**directed-percolation** p_c reproduced to 2·10⁻⁴ — different universality class from ASEP,
+it validates the *streams*, not any ASEP physics (user's explicit caveat).
+
+## Boundary reruns: cancelled (user decision)
+
+The fig5 boundary L-scan stands as is; no c=100 rerun, no L=16000–20000. The τ campaign
+answers the "does SSB survive" question from the dynamics side instead.
