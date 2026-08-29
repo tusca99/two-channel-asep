@@ -28,6 +28,23 @@
 \institute{}
 \date{\today}
 
+% Section-tracking in the headline (Berlin-style tabs, Madrid-compatible):
+% current section highlighted, others dimmed.
+\usepackage{etoolbox}
+\makeatletter
+\defbeamertemplate*{headline}{tocbar}{%
+  \vskip1pt%
+  \hbox{%
+    \begin{beamercolorbox}[wd=\paperwidth,ht=3.12ex,dp=3.1ex,leftskip=0.3pc,rightskip=0.3pc]{section in head/foot}%
+      \setbeamercolor{section in head/foot}{fg=white,bg=black!60}%
+      \insertnavigation{0.96\paperwidth}%
+    \end{beamercolorbox}%
+  }%
+}
+\setbeamertemplate{headline}[tocbar]
+\setbeamertemplate{navigation symbols}{}
+\makeatother
+
 \begin{document}
 
 \begin{frame}
@@ -35,9 +52,10 @@
   %% \note{1 hour talk. Theory-heavy first half (~25 min), results second half.}
 \end{frame}
 
-%% \begin{frame}{Outline}
-%%   \tableofcontents
-%% \end{frame}
+\begin{frame}{Outline}
+  \vspace{-0.6em}
+  {\footnotesize \tableofcontents[hideallsubsections]}
+\end{frame}
 
 %% =====================================================================
 \section{Motivation}
@@ -211,7 +229,7 @@
 \end{frame}
 
 %% =====================================================================
-\section{Single-lane TASEP (recap)}
+\section{TASEP (recap)}
 \begin{frame}{Recap: single-lane TASEP}
   One channel, particles enter with rate $\alpha$, hop right with rate 1,
   exit with rate $\beta$.
@@ -246,6 +264,18 @@
         \draw[thick] (0,0) rectangle (1,1);
         \draw[-{Stealth}, thick] (0,0) -- (1.12,0) node[below] {$\alpha$};
         \draw[-{Stealth}, thick] (0,0) -- (0,1.12) node[left] {$\beta$};
+        % axis ticks: 0, 1/2, 1
+        \foreach \x in {0,0.5,1} {
+          \draw[thick] (\x,0) -- (\x,-0.04);
+          \node[below, font=\scriptsize] at (\x,-0.06) {\pgfmathprintnumber[fixed,fixed zerofill,precision=1]{\x}};
+        }
+        \foreach \y in {0,0.5,1} {
+          \draw[thick] (0,\y) -- (-0.04,\y);
+          \node[left, font=\scriptsize] at (-0.04,\y) {\pgfmathprintnumber[fixed,fixed zerofill,precision=1]{\y}};
+        }
+        % 1/2 markers
+        \fill[black!70] (0.5,0) circle (0.012);
+        \fill[black!70] (0,0.5) circle (0.012);
         \node[text=positive!50!black] at (0.2,0.8) {LD};
         \node[text=negative!50!black] at (0.75,0.2) {HD};
         \node[text=emphasis!40!black] at (0.75,0.75) {MC};
@@ -271,45 +301,15 @@
       \vspace{0.4em}
       For a single lane, \textbf{mean-field (MFT) is exact} (matrix ansatz).
   \end{columns}
-\end{frame}
-
-\begin{frame}{Single-lane currents}
-  \centering
-  \begin{tikzpicture}
-    \begin{axis}[
-      width=0.60\textwidth, height=5.5cm,
-      xlabel={$\beta$}, ylabel={$J$},
-      xmin=0, xmax=1, ymin=0, ymax=0.29,
-      domain=0.004:0.996, samples=250,
-      tick label style={font=\scriptsize},
-      label style={font=\small},
-      legend style={font=\scriptsize, at={(0.98,0.28)}, anchor=east,
-                    cells={anchor=west}, draw=black!30}
-    ]
-      \addplot[very thick, positive] {min(min(x,0.30),0.5)*(1-min(min(x,0.30),0.5))};
-      \addlegendentry{$\alpha=0.30$}
-      \addplot[very thick, negative] {min(min(x,0.55),0.5)*(1-min(min(x,0.55),0.5))};
-      \addlegendentry{$\alpha=0.55$}
-      \addplot[very thick, emphasis!80!black] {min(min(x,0.75),0.5)*(1-min(min(x,0.75),0.5))};
-      \addlegendentry{$\alpha=0.75$}
-      \addplot[very thick, cbPurple] {min(min(x,0.90),0.5)*(1-min(min(x,0.90),0.5))};
-      \addlegendentry{$\alpha=0.90$}
-      \addplot[dotted, thick, black] {0.25};
-      \node[font=\scriptsize, anchor=west] at (axis cs:0.02,0.258) {$J=1/4$};
-    \end{axis}
-  \end{tikzpicture}
+  \vspace{0.2em}
   \begin{itemize}
-    \item $J = c(1-c)$ with $c = \min(\alpha, \beta, 1/2)$: rises along
-      $\beta(1-\beta)$, then saturates.
-    \item All curves with $\alpha > 1/2$ \pos{collapse onto $J=1/4$} --- the
-      bulk becomes rate-limiting.
-    \item For $\alpha < 1/2$ the curve stays on its own $\alpha(1-\alpha)$
-      plateau --- no overlap.
+    \item Current $J(\beta)=c(1-c)$, $c=\min(\alpha,\beta,1/2)$: curves with
+      $\alpha>1/2$ \pos{collapse onto $J=1/4$}; LD plateaus at $\alpha(1{-}\alpha)$.
   \end{itemize}
 \end{frame}
 
 %% =====================================================================
-\section{Mean-field theory for the two-channel model}
+\section{MFT for the two-channel ASEP}
 \begin{frame}{Strategy: two single-lane TASEPs with effective rates}
   \footnotesize
   \setlength{\abovedisplayskip}{2pt}
@@ -382,7 +382,7 @@
   \[
     J_2 = \beta m_1 = \frac14 \quad\Rightarrow\quad m_1 = \frac{1}{4\beta}.
   \]
-  (Physical range: $\beta > 0$.)
+  (Physical range: $\beta > 0$.)\\
   \textbf{Step 2: effective entrance rate (eq 9).}
   \[
     \alpha_1 = \alpha(1 - m_1) = \alpha\left(1 - \frac{1}{4\beta}\right).
@@ -551,11 +551,14 @@
   \end{block}
 \end{frame}
 
+
+\section{Preliminary results}
 \begin{frame}{Mean-field phase diagram (summary)}
   \begin{columns}[T]
     \column{0.5\textwidth}
       \centering
-      \includegraphics[width=0.95\textwidth]{fig2/phase_diagram_full.png}
+      \vspace{4pt}
+      \includegraphics[height=0.62\textheight,keepaspectratio]{fig2/phase_diagram_full.png}
     \column{0.5\textwidth}
       \vspace{4pt}
       \small
@@ -571,8 +574,8 @@
         \bottomrule
       \end{tabular}
 
-      \vspace{0.5em}
-      \small
+      \vspace{0.1em}
+      \footnotesize
       Transitions: LD$\leftrightarrow$MC and LD$\leftrightarrow$LD/LD are
       \emph{continuous}; HD/LD$\leftrightarrow$LD/LD is \emph{first order}.
   \end{columns}
@@ -637,30 +640,38 @@
   \begin{columns}[T]
     \column{0.5\textwidth}
       \centering
-      \includegraphics[height=0.56\textheight,keepaspectratio]{fig2/phase_diagram_full.png}\\
+      \includegraphics[height=0.54\textheight,keepaspectratio]{fig2/phase_diagram_full.png}\\
       {\scriptsize full range — $5\times10^{4}$/site}
     \column{0.5\textwidth}
       \centering
-      \includegraphics[height=0.56\textheight,keepaspectratio]{fig2/phase_diagram_zoom.png}\\
+      \includegraphics[height=0.54\textheight,keepaspectratio]{fig2/phase_diagram_zoom.png}\\
       {\scriptsize zoom: $0.2<\beta<0.4$}
   \end{columns}
-  \vspace{0.2em}
+  \vspace{0.15em}
   \begin{itemize}
     \item Lines: MFT (eqs 10, 23, 33); symbols: SIM — \pos{topology reproduced} (LD, {\small MC}, HD/LD, LD/LD).
     \item \textbf{Boundary positions deviate} --- the paper's key message (red band below MFT dashed).
   \end{itemize}
   \note{Clean bands at L=2000 (no speckle, unlike the old 3k/site runs).
     The HD/LD red band sits clearly BELOW the MFT dashed line. This slide is
-    the anchor for the rest of the section. We do not show the original paper
-    scan — our high-budget reproduction at 50k/site stands alone; original in
-    backup if asked.}
+    the anchor for the rest of the section. Original paper Fig 2 inset at the
+    bottom for direct comparison: same topology, finer bands in ours.}
 \end{frame}
+
+\begin{frame}
+      \centering
+      \includegraphics[width=0.24\textwidth,keepaspectratio]{fig2/phase_diagram_full.png}
+      \includegraphics[width=0.24\textwidth,keepaspectratio]{fig2/phase_diagram_zoom.png}
+  \includegraphics[width=0.5\textwidth,keepaspectratio]{../theory/fig2_original.png}\\
+  {\scriptsize Ours vs original (Pronina \& Kolomeisky 2007, Fig.\ 2)}
+\end{frame}
+
 
 \begin{frame}{Where MFT works — and where it breaks ($\alpha=0.9$)}
   \begin{columns}[T]
     \column{0.52\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{fig6/densities_alpha0.9_proj.png}
+      \includegraphics[width=\textwidth,height=0.78\textheight,keepaspectratio]{fig6/densities_alpha0.9_proj.png}
     \column{0.45\textwidth}
       \begin{itemize}
         \item SIM (symbols): sharp HD/LD jump at $\beta \approx 0.23$.
@@ -701,7 +712,7 @@
     push to $L=2000$ at 50k/site (paper $L\le1000$, 3k/site) and the shift remains.}
 \end{frame}
 
-\begin{frame}{Total current saturation (paper Fig 4)}
+\begin{frame}{Total current saturation}
   \centering
   \includegraphics[width=0.78\textwidth,height=0.52\textheight,keepaspectratio]{fig4_current_derivative_proj.png}
 
@@ -737,7 +748,7 @@
 \end{frame}
 
 %% =====================================================================
-\section{Finite size and symmetry breaking}
+\section{Finite size and SSB}
 \begin{frame}{The LD/LD band shrinks with $L$}
   \centering
   \vspace{-2pt}
@@ -755,7 +766,7 @@
   \begin{columns}[T]
     \column{0.54\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{../results/fig5_variant_left/fig5a_left_variant_linear_proj.png}
+      \includegraphics[width=\textwidth,height=0.62\textheight,keepaspectratio]{../results/fig5_variant_left/fig5a_left_variant_linear_proj.png}
     \column{0.43\textwidth}
       \begin{itemize}
         \item HD/LD boundary \pos{flat at $\beta\approx0.253$} for
@@ -771,27 +782,42 @@
     dashed: MFT eq 23/33 = 0.332 at alpha=0.9. The flat blue line at 0.253
     is our strongest finite-size result. The large-L drift is an
     equilibration artifact, not physics: budget must scale as $cL$ with
-    $c\sim100$. This is beyond the paper ($L\le 2000$ in original) — our `new' contribution is the scaling analysis.}
+    $c\sim100$. Original Fig 5a inset (left boundary only, alpha=0.9):
+    our scan goes beyond the paper's L range.}
+\end{frame}
+
+\begin{frame}
+\centering
+      \includegraphics[width=0.5\textwidth]{../results/fig5_variant_left/fig5a_left_variant_linear_proj.png}
+      \includegraphics[width=0.45\textwidth]{../theory/fig5_original.png}\\
+      {\scriptsize Ours vs original (Pronina \& Kolomeisky 2007, Fig.\ 5a)}
 \end{frame}
 
 \begin{frame}{Finite-size: bulk densities ($\alpha=0.9$) vs $L$}
   \begin{columns}[T]
     \column{0.48\textwidth}
       \centering
-      \includegraphics[width=\textwidth,height=0.45\textheight,keepaspectratio]{../results/L200/fig6/densities_alpha0.9_proj.png}\\
+      \includegraphics[width=\textwidth,height=0.48\textheight,keepaspectratio]{../results/L200/fig6/densities_alpha0.9_proj.png}\\
       {\small $L=200$ — broadened}
     \column{0.48\textwidth}
       \centering
-      \includegraphics[width=\textwidth,height=0.45\textheight,keepaspectratio]{../results/L2000/fig6/densities_alpha0.9_proj.png}\\
+      \includegraphics[width=\textwidth,height=0.48\textheight,keepaspectratio]{../results/L2000/fig6/densities_alpha0.9_proj.png}\\
       {\small $L=2000$ — sharp, $5\times10^{4}$/site}
   \end{columns}
-  \vspace{0.2em}
+  \vspace{0.15em}
   \begin{itemize}
     \item HD/LD jump \pos{sharpens with $L$}; dilute branch unchanged, error bars collapse.
     \item Position stable at $\beta\approx0.23$--$0.26$ --- \con{far from MFT $0.332$} at all $L$.
     \item Dense plateau ${\sim}0.70$ vs MFT ${\sim}0.80$ --- persistent, not a transient.
   \end{itemize}
-  \note{L=200 shows broadened transition with sizable error bars near beta~0.23--0.30 (finite-size fluctuations). At L=2000 the jump is sharp (single beta step) and both branches are precise. L=500/1000 interpolate. MFT dashed jump stays at 0.332 at all L — the disagreement is not finite-size. This is the cleanest demonstration that MFT failure is genuine.}
+  \note{L=200 shows broadened transition with sizable error bars near beta~0.23--0.30 (finite-size fluctuations). At L=2000 the jump is sharp (single beta step) and both branches are precise. L=500/1000 interpolate. MFT dashed jump stays at 0.332 at all L — the disagreement is not finite-size. Original paper Fig 6 inset: same qualitative jump, our data tighter.}
+\end{frame}
+
+\begin{frame}
+\centering
+      \includegraphics[width=0.47\textwidth,keepaspectratio]{../results/L2000/fig6/densities_alpha0.9_proj.png}
+ \includegraphics[width=0.43\textwidth,keepaspectratio]{../theory/fig6_original.png}\\
+  {\scriptsize Ours L=2000 vs L=1000 original (Pronina \& Kolomeisky 2007, Fig.\ 6)}
 \end{frame}
 
 \begin{frame}{SSB: a robust order parameter}
@@ -833,7 +859,7 @@
     \end{column}
     \begin{column}{0.6\textwidth}
       \centering
-      \includegraphics[width=0.95\textwidth,height=\textheight,keepaspectratio]{../results/L2000/fig3_joint_2d4_proj.png}
+      \includegraphics[width=0.95\textwidth,height=0.85\textheight,keepaspectratio]{../results/L2000/fig3_joint_2d4_proj.png}
 
     \end{column}
   \end{columns}
@@ -925,9 +951,10 @@
   \note{Long single trajectories: CPU still $\sim100\times$ faster per-thread; GPU wins only via mass parallelism. Lecture cue: this is why we have 512–2048 replicas for Fig3 — impossible on CPU. 40 beta scan at 200M steps/pt is a week on 1 core, hours on ensemble.}
 \end{frame}
 
-\section{Conclusions \& Outlook}
+\section{Conclusions}
 %% =====================================================================
 \begin{frame}{Outlook: what's next — beyond bulk MF}
+  \vspace{-0.4em}
   \begin{columns}[T]
     \column{0.33\textwidth}
       \textbf{\pos{Coupling is the engine}}\\{\small Zhu \textit{et al.} PRE \textbf{85}, 041132 (2012)}
@@ -952,9 +979,8 @@
         \item RNG at $10^{11}$ draws: counter-based streams (Philox; AES-CTR Trivium bank).
       \end{itemize}
   \end{columns}
-  \vspace{0.4em}
   \begin{block}{Take-away}
-    \textbf{Entrance coupling drives SSB; scaling + current minimization decide what survives.}
+    \small\textbf{Entrance coupling drives SSB; scaling + current minimization decide what survives.}
   \end{block}
   \note{60-s cue: the entrance coupling is the SSB engine --- Zhu's leaky entrance (2012) kills both broken phases at $p_c\approx0.6$, so our $p=0$ is where SSB is strongest; his flipping time $\tau\propto e^L$ is the fingerprint. Our $\beta$ boundary disagreement (MFT 0.33 vs SIM 0.25 at $\alpha=0.9$) is an entrance-correlation effect: Tian's $N$-cluster (2017) moves the boundary to 0.289 at $N\to\infty$ --- half the gap closes. Tian's current-minimization argument says the LD/LD band should not exist at all, yet his own $L=10^4$ MC still sees it. The verdict needs exactly what we have: $c\approx100$ equilibration scaling to $L\approx10^4$--$2\cdot10^4$, a few hours on our CPU farm. RNG caveat (Tian's ref [53]): at $10^{11}$+ draws use counter-based streams --- e.g.\ Philox per replica on GPU, or the AES-CTR-seeded Trivium bank from my FPGA percolation core (64 provably independent streams, period $>2^{144}$; validated on a 2-D directed-percolation benchmark --- different universality class, but a clean end-to-end RNG check: $p_c$ reproduced to $2\times10^{-4}$). Xiao 2010 is a Y-junction TASEP --- template only for $\alpha_1\neq\alpha_2$. PDFs: zhu2012/tian2017/xiao2010/pronina2007\_arxiv in theory/.}
 \end{frame}
@@ -1034,6 +1060,8 @@
   \emph{Questions?}
 \end{frame}
 
+
+\section{Backups}
 \begin{frame}{Backup: original paper vs our reproduction}
   \small Paper Fig.~2–3 are at $L\le1000$, $\sim3\,$k/site. Ours is $L=2000$, $50\,$k/site — same topology, shifted boundaries, no speckle. We do not show scans in main to avoid clutter; this comparison is for fidelity questions.
   \vspace{0.4em}

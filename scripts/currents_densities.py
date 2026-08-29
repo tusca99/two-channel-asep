@@ -93,7 +93,7 @@ def plot_currents(alpha, betas, J1, J2, eJ1, eJ2, fname):
     # y-limit: max of MC and MFT currents, with headroom
     ymax = max(np.nanmax(J1), np.nanmax(J2), np.nanmax(mft1), np.nanmax(mft2))
     ax.set_ylim(0, ymax * 1.15)
-    ax.legend(fontsize=7)
+    ax.legend(fontsize=7, loc="lower right")
     fig.tight_layout(); fig.savefig(fname, dpi=150); plt.close(fig)
 
 
@@ -117,7 +117,7 @@ def plot_densities(alpha, betas, dense, dilute, edense, edilute, fname):
     ax.set_xlabel(r"$\beta$"); ax.set_ylabel(r"$\rho$")
     ax.set_title(rf"Bulk densities, $\alpha={alpha}$")
     ax.set_xlim(0, 1); ax.set_ylim(0, 1)
-    ax.legend(fontsize=7)
+    ax.legend(fontsize=7, loc="lower right")
     fig.tight_layout(); fig.savefig(fname, dpi=150); plt.close(fig)
 
 

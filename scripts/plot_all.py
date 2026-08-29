@@ -97,7 +97,7 @@ def plot_fig6():
             ymax = max(np.nanmax(d["J1"]), np.nanmax(d["J2"]),
                        np.nanmax(mft1), np.nanmax(mft2))
             ax.set_ylim(0, ymax * 1.15)
-            ax.legend(fontsize=7)
+            ax.legend(fontsize=7, loc="lower right")
             fig.tight_layout()
             fig.savefig(f"{OUT}/fig6/currents_alpha{alpha}.png", dpi=150)
             plt.close(fig)
@@ -116,7 +116,7 @@ def plot_fig6():
             ax.set_xlabel(r"$\beta$"); ax.set_ylabel(r"$\rho$")
             ax.set_title(rf"Bulk densities, $\alpha={alpha}$")
             ax.set_xlim(0, 1); ax.set_ylim(0, 1)
-            ax.legend(fontsize=7)
+            ax.legend(fontsize=7, loc="lower right")
             fig.tight_layout()
             fig.savefig(f"{OUT}/fig6/densities_alpha{alpha}.png", dpi=150)
             plt.close(fig)

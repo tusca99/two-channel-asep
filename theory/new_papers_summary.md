@@ -48,14 +48,6 @@
 - Boundary convergence: N-cluster boundaries approach the L=10⁴ MC ones as N grows (Fig. 7) —
   entrance correlations, not bulk MF, set the boundary position.
 
-## 3. Xiao et al., CPB 19, 090202 (2010) — different process; usable as a template
-- Y-junction: two input lanes merge into one output lane; TASEP (one direction), α₁ ≠ α₂,
-  bulk rates p₁, p₂, p₃; simple 1-site MF with effective junction rates (β_eff, α_eff) from
-  current conservation + the reduced-rate TASEP solution.
-- Five phases (LD/LD/LD, HD/LD/MC, HD/LD/HD, HD/HD/HD, HD/HD/MC); unequal rates shift the
-  vertical boundary left and horizontal boundary down.
-- **No correlator C, no SSB analysis** — value for us: method template for the α₁ ≠ α₂ extension
-  of our model (our Open-questions frame).
 
 ## How to say it in 60 s (outlook cue) — corrected
 > *Our β boundary disagreement (MFT 0.33 vs SIM 0.25 at α=0.9) is an entrance-correlation effect:

@@ -253,8 +253,8 @@ def update(frame):
     orange_wait.set_visible(blocked2); orange_glow.set_visible(blocked2)
     blue_glow.set_alpha(0.15+0.25*pulse if blocked1 else 0)
     orange_glow.set_alpha(0.15+0.25*pulse if blocked2 else 0)
-    # time counter
-    time_text.set_text(f"event {frame}/{n_frames}  •  t={frame*0.1:.1f}")
+    # step counter (each frame = one MC event; our "time" is the step count)
+    time_text.set_text(f"event {frame}/{n_frames}")
     return [r for r,_,_,_ in boxes] + [blue_wait, orange_wait, blue_glow, orange_glow] + slide_circles + [time_text]
 
 anim = animation.FuncAnimation(fig, update, frames=n_frames, init_func=init, blit=True, interval=1000/15)
