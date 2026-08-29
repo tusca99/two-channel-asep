@@ -593,15 +593,12 @@
   \end{block}
 \end{frame}
 
-%% =====================================================================
-\section{Monte Carlo vs mean-field}
 \begin{frame}{High-budget simulation runs}
-  \small
   \begin{columns}[T]
     \column{0.5\textwidth}
       \vspace{4pt}
       \centering
-      \footnotesize
+\resizebox{\textwidth}{!}{
       \begin{tabular}{lrr}
         \toprule
         $L$ & steps/point & steps/site \\
@@ -611,9 +608,9 @@
         1000 & $5\times10^{7}$   & $5\times10^{4}$ \\
         2000 & $1\times10^{8}$   & $5\times10^{4}$ \\
         \bottomrule
-      \end{tabular}
-      \vspace{0.4em}
-      {\scriptsize $c$ = prefactor in steps/site $\approx cL$; here $c\approx50$ (need $c\approx100$ for $L\ge4000$).}
+      \end{tabular}}
+\\
+      {\small $c$ = prefactor in steps/site $\approx cL$;\\ here $c\approx50$ (need $c\approx100$ for $L\ge4000$).}
     \column{0.47\textwidth}
       \begin{itemize}
         \item Fenwick-tree BKL, 30 CPU workers (SIM).
@@ -1037,16 +1034,6 @@
   \emph{Questions?}
 \end{frame}
 
-%% =====================================================================
-\appendix
-\begin{frame}{Backup slides}
-  \centering
-  \vspace{2.5cm}
-  Anticipated questions --- backups follow.\\
-  \vspace{1em}
-  {\small Main talk 60\,min normal pace ($\sim$38 slides); backups not counted.}
-\end{frame}
-
 \begin{frame}{Backup: original paper vs our reproduction}
   \small Paper Fig.~2–3 are at $L\le1000$, $\sim3\,$k/site. Ours is $L=2000$, $50\,$k/site — same topology, shifted boundaries, no speckle. We do not show scans in main to avoid clutter; this comparison is for fidelity questions.
   \vspace{0.4em}
@@ -1082,39 +1069,6 @@
     \item Today's runs use $c=50$ ($5\times10^{4}$/site); the fig-5 drift
       at $L\ge4000$ is exactly this budget running out.
   \end{itemize}
-\end{frame}
-
-\begin{frame}{Backup: kernel performance details}
-  \begin{columns}[T]
-    \column{0.48\textwidth}
-      \begin{itemize}
-        \item Classic BKL: cost $\propto n_{\mathrm{active}}$ --- cheap at
-          low $\beta$ (few events), expensive at high density.
-        \item Fenwick: $O(\log L)$ always --- wins at high $\beta$; the
-          two cost curves cross in $\beta$.
-        \item Per-thread GPU: ${\sim}35$k step/s (serial chain,
-          latency-bound); ${\sim}58$--$60$k at $L=8000$.
-      \end{itemize}
-    \column{0.48\textwidth}
-      \begin{center}
-        \footnotesize
-        \begin{tabular}{lrr}
-          \toprule
-          Backend & Mstep/s & rel. \\
-          \midrule
-          CPU 1$\times$ classic & 1.8 & $1\times$ \\
-          CPU 1$\times$ Fenwick & 4.4 & $2.4\times$ \\
-          CPU 30 workers & ${\sim}100$ & $55\times$ \\
-          GPU (RTX 4070) & 120--180 & ${\sim}90\times$ \\
-          \bottomrule
-        \end{tabular}
-      \end{center}
-      \vspace{0.4em}
-      \footnotesize
-      GPU best for: phase diagrams, $P(\rho_1,\rho_2)$ ensembles, big
-      statistics. Long single trajectories: CPU (${\sim}100\times$
-      faster per-thread).
-  \end{columns}
 \end{frame}
 
 \end{document}
