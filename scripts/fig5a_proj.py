@@ -63,11 +63,9 @@ def main():
     ax.set_xlabel(r"$L$", fontsize=21)
     ax.set_ylabel(r"$\beta$ boundary ($\alpha=0.9$)", fontsize=21)
     ax.tick_params(axis="y", labelsize=15)
-    ax.set_title("Boundaries vs $L$ — flat to $L=2000$, "
-                 "drift beyond is budget, not physics", fontsize=19)
-    # legend outside right: never clashes with points
-    ax.legend(fontsize=14, loc="center left", bbox_to_anchor=(1.01, 0.5),
-              frameon=False)
+    ax.set_title("Boundaries vs $L$ — flat to $L=2000$", fontsize=19)
+    # legend inside, bottom-left corner (empty region of the plot)
+    ax.legend(fontsize=14, loc="lower left", frameon=True, framealpha=0.9)
     fig.tight_layout()
 
     fig.savefig(os.path.join(OUT, "fig5a_left_variant_linear.png"), dpi=150,
