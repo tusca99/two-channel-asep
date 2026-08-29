@@ -876,9 +876,9 @@
     \column{0.52\textwidth}
       \textbf{BKL rate-proportional (rejection-free)}
       \begin{itemize}
-        \item Pick next event $\propto$ rate — no rejections, exact Gillespie.
+        \item Pick next event $\propto$ rate — no rejections, exact Gillespie \cite{bkl1975}.
         \item Classic: scan active sites $\propto n_{\mathrm{active}}$ — cheap at low $\beta$, \con{costly at high density}.
-        \item \pos{Fenwick tree}: binary indexed tree, $O(\log L)$ pick/update — \textbf{${\sim}2.4\times$ faster, identical physics}.
+        \item \pos{Fenwick tree} \cite{fenwick1994}: binary indexed tree, $O(\log L)$ pick/update — \textbf{${\sim}2.4\times$ faster, identical physics}.
       \end{itemize}
       \vspace{0.3em}
       {\small Cost crosses in $\beta$: BKL wins dilute, Fenwick wins dense.}
@@ -1002,20 +1002,15 @@
       \emph{Spurious symmetry-broken phase in a bidirectional two-lane ASEP
         with narrow entrances},
       Chin.\ Phys.\ B \textbf{26}, 020503 (2017).
-    \bibitem{xiao2010}
-      S.~Xiao, J.~J.~Cai, F.~Liu, M.~Z.~Liu,
-      \emph{Effect of unequal injection rates and different hopping rates
-        on asymmetric exclusion processes with junction},
-      Chin.\ Phys.\ B \textbf{19}, 090202 (2010).
-    \bibitem{macdonald1968}
-      C.~T.~MacDonald, J.~H.~Gibbs, A.~C.~Pipkin,
-      \emph{Kinetics of biopolymerization on nucleic acid templates},
-      Biopolymers \textbf{6}, 1 (1968).
     \bibitem{bkl1975}
       A.~B.~Bortz, M.~H.~Kalos, J.~L.~Lebowitz,
       \emph{A new algorithm for Monte Carlo simulation of Ising spin
         systems},
       J.~Comput.\ Phys.\ \textbf{17}, 10 (1975).
+    \bibitem{fenwick1994}
+      P.~M.~Fenwick,
+      \emph{A new data structure for cumulative frequency tables},
+      Softw.\ Pract.\ Exper.\ \textbf{24}, 321 (1994).
   \end{thebibliography}
 \end{frame}
 
