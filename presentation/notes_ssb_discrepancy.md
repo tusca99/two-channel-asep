@@ -279,6 +279,56 @@ Consequences, all the same physics: (i) a finite run at large L samples ONE basi
 rule); (iii) ensemble std(ρ₁−ρ₂) is the right order parameter — different replicas land in
 different basins, so time-averaged |ρ₁−ρ₂| washes out but std stays finite.
 
+### How to present the tau_L.png slide — word-for-word cue
+
+**Setup (before pointing at axes):**
+> "Here we asked the dynamical question hiding behind the phase diagram: when the system is in
+> a broken-symmetry state, how long does it stay there? In the broken band the two lanes
+> behave like a two-valley landscape: lane 1 dense / lane 2 dilute is one valley, the mirror
+> state is the other. A **basin** = one valley; the trajectory lives inside it (a **dwell**),
+> then occasionally crosses the saddle to the symmetric point and falls into the other valley
+> — a **flip**. τ is the median time between flips."
+
+**Axes:**
+> "x-axis: system size L, log scale. y-axis: τ, median dwell time, in Monte Carlo steps,
+> also log. Each color is one β, all at α=0.9 — 0.26 red is at the *edge* of the broken band,
+> 0.22 orange and 0.18 blue deeper inside."
+
+**The red curve (β=0.26, the only fully measured one):**
+> "The red points are times we directly measured: at L=200 a broken state lives ~13k steps,
+> at L=2000 it lives ~1.7 million — a straight line on log-log, τ ≈ 1.4·10⁴·e^{L/390}.
+> Every +1800 sites multiply the lifetime by ~100. This is Zhu's exponential — the
+> fingerprint that the broken phase is *metastable*, i.e. a genuine dynamical phase,
+> not noise."
+
+**The triangles (▽):**
+> "Blue and orange are *not* points — they're **lower bounds**. Deep in the band the basins
+> are so long-lived that our whole run — up to 6·10⁹ steps, hours per trajectory — saw
+> **zero flips**. We can't plot τ=∞, so we plot the full run length and mark it with a
+> triangle: the truth is somewhere *above* that marker. Standard censored-data convention."
+
+**Punchline (connect to earlier slides):**
+> "So the broken phases are metastable states with exponentially growing lifetimes. This one
+> plot explains three things we saw earlier: why a single trajectory at L=2000 always looks
+> symmetry-broken (it's stuck in one valley); why the phase-boundary bands need equilibration
+> that scales as c·L — you must let the trajectory explore enough to find its basin; and why
+> the ensemble std(ρ₁−ρ₂) is the right order parameter while time-averaged |ρ₁−ρ₂| collapses
+> — different replicas fall into different valleys."
+
+**If asked "isn't a triangle just a failed run?":**
+> "No — with zero flips, the *absence* is the measurement: exponential exit times mean most
+> runs see nothing. The bound is informative: even at L=200, deep-band τ exceeds all our
+> earlier equilibration budgets."
+
+**If asked "why only β=0.26 has a line?":**
+> "Because at β=0.18–0.22 flipping is rarer than any affordable run — by design. The boundary
+> between measured and censored points is itself the physics: you only get flip statistics
+> near the band edge, where the saddle is low."
+
+**Scope sentence (if asked where this method comes from):**
+> "The τ(L) protocol is Zhu et al. 2012's — they did it for their leaky-entrance model at
+> p>0; we extend it to the original p=0 model and add the β-dependence."
+
 ## τ campaign results (α=0.9, single long trajectories, 8700K)
 
 | L | β=0.18 | β=0.22 | β=0.26 |
