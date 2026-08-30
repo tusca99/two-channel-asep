@@ -814,27 +814,50 @@
 
 \begin{frame}{SSB: a robust order parameter}
   \begin{columns}[T]
-    \column{0.52\textwidth}
+    \column{0.56\textwidth}
       \centering
-      \includegraphics[width=\textwidth,height=0.68\textheight,keepaspectratio]{../results/L1000/ssb_order_vs_beta_proj.png}
-    \column{0.46\textwidth}
-      \begin{block}{Why naive fails}
+      \includegraphics[width=\textwidth,height=0.64\textheight,keepaspectratio]{../results/ssb_rerun/ssb_order_v2_proj.png}
+    \column{0.44\textwidth}
+      \begin{block}{Order parameter = ensemble statistic}
         \centering
-        {\small Time-averaged $|\rho_1-\rho_2|$ washed out:\\flips $(+,-)\!\leftrightarrow\!(-,+)$.}
+        {\small Break the symmetry 128 times (128 replicas).\\[2pt]
+         `\emph{how different?}' $\;\langle|\rho_1{-}\rho_2|\rangle$ \quad
+         `\emph{how often?}' $\;f_{\rm br}$.}
       \end{block}
-      \vspace{0.3em}
-      {\small Robust: $\mathrm{std}(\rho_1-\rho_2)$ over ensemble (512 reps).}
-      \vspace{0.2em}
+      \vspace{0.1em}
+      {\small \textbf{Blue} = size of the lane gap: $0.90$ (one lane 86\%,
+        other 4\%) $\to$ 0 (lanes equal).\\
+        \textbf{Red} = fraction of replicas visibly asymmetric; mid-values
+        $=$ \emph{some copies broke, some didn't} $\Rightarrow$ two outcomes
+        stable at once (first-order-like).}
+      \vspace{0.05em}
       \begin{itemize}
-        \item {\small $L=1000$, $\alpha=0.9$: $\langle\rho_{\rm dense}-\rho_{\rm dilute}\rangle$ $0.88\!\to\!0.36$.}
-        \item {\small $\mathrm{std}\!\approx\!0.12$--$0.17$ stays finite.}
-        \item {\small SSB at low $\beta$ (SIM $\approx0.23$).}
+        \item {\footnotesize Both collapse at the band edge
+          $\beta\approx0.25$--$0.28$ (grey): the SSB region of the
+          phase diagram, seen from the order parameter itself.}
+        \item {\footnotesize Weak re-entrant band $\beta\approx0.32$--$0.34$,
+          edge at MFT $0.332$ (cf.\ Fig.\ 5a).}
       \end{itemize}
   \end{columns}
-  \note{Blue: mean density difference across the ensemble; orange dashed:
-    std of rho1-rho2. The std stays finite precisely because single
-    trajectories flip sign --- that is why we use it, and not the
-    time-averaged absolute difference, as the order parameter.}
+  \note{NEW data: results/ssb_rerun (128 indep. replicas x 49 betas, L=1000,
+    alpha=0.9, 120k steps/site, fresh seed, continue-kernel). ELI5 cue: run
+    the "same experiment" 128 times; blue asks HOW different the lanes ended
+    up (size of the gap; 0.90 = lane 1 86% full vs lane 2 4%), red asks HOW
+    MANY copies broke (f_br = frac|gap|>0.1). Middle f_br in the grey band =
+    water/steam coexistence analogue: both outcomes stable at the same beta.
+    Technical: m(beta)=<|g|>, f_br over per-replica steady-state gap g_i;
+    50/50 basin split at every beta (max |signed mean| 0.04) -> independent
+    replicas. Grey 0.245-0.285 = SSB band from the phase diagram; light band
+    0.312-0.345 = weak re-entrant broken region, edge at MFT 0.332 ---
+    independently confirmed by fig5a (LD/LD lower boundary 0.397+-0.04 at
+    L=1000) and the phase grid (LD/LD at beta=0.35). Why not the old plot:
+    its "std" was the per-replica TIME std (~0.12-0.17, flat) = fluctuation
+    width, identical in broken and symmetric phases -> no discriminating
+    power; a single-run time-average washes out via flips (tau(L) slide).
+    Error bars: blue = SEM over replicas (negligible); red = Wilson 68% on
+    binomial f_br (~+-0.04 in the wedge). Replica noise is SMALL; systematics
+    (equilibration c=120, tau~e^L) dominate --- honest framing if asked.
+    1.5h GPU in results/ssb_rerun.log.}
 \end{frame}
 
 \begin{frame}{$P(\rho_1,\rho_2)$ from an ensemble}
@@ -862,26 +885,45 @@
   \begin{columns}[T]
     \column{0.52\textwidth}
       \centering
-      \includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{../results/tau/tau_L.png}
+      \includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{../results/tau/tau_L_v2_proj.png}
     \column{0.44\textwidth}
       \begin{block}{Key message}
         \centering
-        \pos{SSB $=$ metastability}: basins live $\tau\sim e^{L/\xi}$ ---\\
-        at large $L$ a run sees \emph{one} basin.
+        \pos{SSB $=$ metastability}: broken state $=$ \emph{long-lived valley}.\\
+        \small escape $\Rightarrow$ mirror world, then stay again.
       \end{block}
       \begin{itemize}
-        \item {\small Zhu 2012 measured $\tau(L)$ for the \emph{leaky} model ($p>0$); we extend to \pos{$p=0$} at $\alpha{=}0.9$.}
-        \item {\small Band edge ($\beta{=}0.26$): \HL{$\tau\approx1.4{\cdot}10^{4}e^{L/390}$} --- $\times100$ per $1800$ sites.}
-        \item {\small Deep band: no flip in $6{\cdot}10^9$ steps at $L{=}2000$ ($\tau\gtrsim10^{10}$).}
-        \item {\small Explains \con{why bands shrink}: finite runs sample one basin $\Rightarrow$ equilibration needs $c\propto L$.}
+        \item {\footnotesize Watch \emph{one} system; count spontaneous flips
+          $(\rho_1{>}\rho_2)\!\leftrightarrow\!(\rho_1{<}\rho_2)$;
+          $\tau=$ median wait.}
+        \item {\footnotesize $\beta{=}0.26$ (edge): \HL{$\tau\propto e^{L}$} ---
+          $4{\cdot}10^6 e^{L/371}$ MC steps, $\times100$ per ${\sim}1700$
+          sites (49/20/9/4 flips seen).}
+        \item {\footnotesize $\beta{=}0.22$ (deep): \con{zero flips ever} ---
+          1e8--6e9-step runs $\Rightarrow$ lower bounds only ($\triangledown$).}
+        \item {\footnotesize Hence big-$L$ runs need equilibration $\propto L$
+          steps/site just to \emph{find} their basin.}
       \end{itemize}
   \end{columns}
-  \note{tau = median dwell time in one SSB basin (|rho1-rho2| above threshold), single long
-    trajectories, alpha=0.9. Triangles = no flip within the run -> lower bound. Method from
-    Zhu Fig 3 (leaky model, p>0, alpha=0.5); ours: p=0 (original Pronina model), beta-ladder
-    0.18/0.22/0.26. Band edge measured: tau ~ 1.4e4 * exp(L/390). Cue: at L=2000 a run of
-    1e9 steps samples a single basin -- that is exactly why fig5 needs c*L steps/site, and why
-    ensemble std(rho1-rho2) stays finite while time-averaged |rho1-rho2| washes out.}
+  \note{ELI5: the broken state is a valley; escaping needs a rare fluctuation,
+    exponentially rarer as the system GROWS. We timed it: one long trajectory
+    per (L, beta), alpha=0.9; detector = in-basin iff |rho1-rho2| > threshold
+    (0.15 edge / 0.35 deep); flip = switch of basin sign; tau = median wait.
+    UNITS MATTER: BKL advances physical time (rate-weighted), so taus are
+    converted to MC steps via n_steps/total_time (tau_phys x mean total rate).
+    Converted ladder (beta=0.26, band edge): 1.0e6 / 7.1e6 / 6.2e7 / 8.5e8 MC
+    steps at L=200/500/1000/2000 from 49/20/9/4 observed flips; exponential
+    fit tau ~ 4e6 e^(L/371) -> lifetime x100 per ~1700 sites. The PREVIOUS
+    slide figure quoted 1.4e4 e^(L/390): that was in BKL physical-time units,
+    not steps. Same physics, cleaner units. Orange triangles (beta=0.22,
+    deeper in band): ZERO flips in 1e8-6e9-step runs -> plotted at full run
+    length as LOWER bounds (censored data). Why no line there: flips are
+    frequent only near the band edge (low barrier); measured-vs-censored
+    boundary is itself physics. Method: Zhu 2012 Fig 3 (leaky model p>0);
+    ours p=0 (Pronina); basin-projection detector, results/tau (the earlier
+    smoothed-sign detector in results/tau_smoothsign was noise-prone and is
+    superseded). tau at L=2000 (8.5e8) vs fig5 equilibration budget 1e8:
+    one dwell is ~8x that budget -- quantifies why c*L steps/site is the rule.}
 \end{frame}
 
 %% =====================================================================
