@@ -885,45 +885,62 @@
   \begin{columns}[T]
     \column{0.52\textwidth}
       \centering
-      \includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{../results/tau/tau_L_v2_proj.png}
+      \includegraphics[width=\textwidth,height=0.58\textheight,keepaspectratio]{../results/tau2/tau_L_v3_proj.png}
     \column{0.44\textwidth}
       \begin{block}{Key message}
         \centering
         \pos{SSB $=$ metastability}: broken state $=$ \emph{long-lived valley}.\\
-        \small escape $\Rightarrow$ mirror world, then stay again.
+        \footnotesize escape $\Rightarrow$ mirror world, then stay again.
       \end{block}
       \begin{itemize}
-        \item {\footnotesize Watch \emph{one} system; count spontaneous flips
-          $(\rho_1{>}\rho_2)\!\leftrightarrow\!(\rho_1{<}\rho_2)$;
-          $\tau=$ median wait.}
-        \item {\footnotesize $\beta{=}0.26$ (edge): \HL{$\tau\propto e^{L}$} ---
-          $4{\cdot}10^6 e^{L/371}$ MC steps, $\times100$ per ${\sim}1700$
-          sites (49/20/9/4 flips seen).}
-        \item {\footnotesize $\beta{=}0.22$ (deep): \con{zero flips ever} ---
-          1e8--6e9-step runs $\Rightarrow$ lower bounds only ($\triangledown$).}
-        \item {\footnotesize Hence big-$L$ runs need equilibration $\propto L$
+        \item {\scriptsize 59 trajectories, 1120 flips; bootstrap 68\% CIs.}
+        \item {\scriptsize $\beta{=}0.26$ (edge): \HL{$\tau\propto e^{L}$} ---
+          $3{\cdot}10^6 e^{L/339}$ MC steps, $\times100$ per ${\sim}1560$
+          sites.}
+        \item {\scriptsize $\beta{=}0.22$ (deep): measured at $L{=}200$
+          (orange sq., 43 flips); \con{0 flips} in $4{\cdot}10^8$ at
+          $L{=}500$ $\Rightarrow$ ($\triangledown$) = \emph{lower bound}.}
+        \item {\scriptsize Hence big-$L$ runs need equilibration $\propto L$
           steps/site just to \emph{find} their basin.}
       \end{itemize}
+      \vspace{0.05em}
+      {\scriptsize \textbf{Markers:} \pos{filled} = measured ($n$ flips
+        seen); \con{$\triangledown$ white} = zero flips in the whole run
+        $\Rightarrow$ true $\tau$ \emph{above} the marker (censored).}
   \end{columns}
-  \note{ELI5: the broken state is a valley; escaping needs a rare fluctuation,
-    exponentially rarer as the system GROWS. We timed it: one long trajectory
-    per (L, beta), alpha=0.9; detector = in-basin iff |rho1-rho2| > threshold
-    (0.15 edge / 0.35 deep); flip = switch of basin sign; tau = median wait.
-    UNITS MATTER: BKL advances physical time (rate-weighted), so taus are
-    converted to MC steps via n_steps/total_time (tau_phys x mean total rate).
-    Converted ladder (beta=0.26, band edge): 1.0e6 / 7.1e6 / 6.2e7 / 8.5e8 MC
-    steps at L=200/500/1000/2000 from 49/20/9/4 observed flips; exponential
-    fit tau ~ 4e6 e^(L/371) -> lifetime x100 per ~1700 sites. The PREVIOUS
-    slide figure quoted 1.4e4 e^(L/390): that was in BKL physical-time units,
-    not steps. Same physics, cleaner units. Orange triangles (beta=0.22,
-    deeper in band): ZERO flips in 1e8-6e9-step runs -> plotted at full run
-    length as LOWER bounds (censored data). Why no line there: flips are
-    frequent only near the band edge (low barrier); measured-vs-censored
-    boundary is itself physics. Method: Zhu 2012 Fig 3 (leaky model p>0);
-    ours p=0 (Pronina); basin-projection detector, results/tau (the earlier
-    smoothed-sign detector in results/tau_smoothsign was noise-prone and is
-    superseded). tau at L=2000 (8.5e8) vs fig5 equilibration budget 1e8:
-    one dwell is ~8x that budget -- quantifies why c*L steps/site is the rule.}
+  \note{tau2 CAMPAIGN (results/tau2, log results/tau2.log, script
+    tau_campaign2.py): 59 independent trajectories, 12/12/8/6 per L at
+    beta=0.26 (plus beta=0.22 and 0.18 controls), 1e8-6e9 steps each, run
+    30 Aug in ~1.7h on 12 cores. Detector: in-basin iff |rho1-rho2|>dmin
+    (0.15 edge/0.35 deep); flip=basin sign switch; tau=median dwell in MC
+    STEPS (BKL physical time x n_steps/total_time: units fixed vs the old
+    v1 figure which quoted physical-time numbers). tau(b=0.26) medians:
+    7.6e5 (793 flips) / 1.39e7 (183) / 6.2e7 (84) / 1.19e9 (17) at
+    L=200/500/1000/2000; bootstrap 68% CIs on every point (largest at
+    L=2000: [6.9e8,1.4e9]). Fit on L>=500 (pure exponential regime):
+    tau ~ 3e6 e^(L/339) -> lifetime x100 per ~1560 sites (Zhu 2012 Fig 3
+    fingerprint, now at our p=0). L=200 lies 7x BELOW the exponential:
+    27% of its time is spent near the symmetric point (barrier region) --
+    small-L basin boundary is not sharp; excluded from fit and flagged on
+    the figure. beta=0.22: measured tau(200)=1.1e7 (43 flips) but ZERO
+    flips at L=500 in 4e8 steps -> lower bound; beta=0.18: zero flips even
+    at L=200 -- deeper band, barrier higher. Numbers to remember for Q&A:
+    one dwell at L=2000 ~1.2e9 steps ~ 12x our 1e8-step fig5 budget at that
+    L -- quantifies the c*L equilibration rule; and tau(2000)/tau(500) ~ 86
+    over 4x size. Error bars: bootstrap over trajectories (between-traj
+    spread), the dominant statistical error at L>=1000.
+    MARKER LEGEND (say this when pointing): filled circle/square with error
+    bar = MEASURED tau (n flips actually observed; the number under each red
+    point is that count). White open triangle = ZERO flips in the entire run
+    -> cannot plot infinity, so the marker sits at the FULL RUN LENGTH and
+    truth is somewhere ABOVE it (censored-data convention; if asked "isn't
+    that a failed run?": no -- with exponential exits, absence is the
+    measurement, and the bound is informative: even at L=200 the deep-band
+    tau exceeds typical single-run budgets). Blue triangle = beta=0.18
+    (deepest, 1e8-step run, no flips); orange triangle = beta=0.22 at
+    L=500 (4e8-step run, no flips) while its sibling at L=200 WAS measured
+    (orange square) -- the measured->censored transition over one lattice
+    size is the exponential growth made visible.}
 \end{frame}
 
 %% =====================================================================
