@@ -1,0 +1,31 @@
+{
+  "L": 2000,
+  "alphas": [
+    0.08,
+    0.11,
+    0.14,
+    0.17,
+    0.2,
+    0.23,
+    0.26,
+    0.29,
+    0.32
+  ],
+  "betas": [
+    0.8,
+    0.83,
+    0.86,
+    0.89,
+    0.92,
+    0.95
+  ],
+  "n_reps": 16,
+  "steps": 100000000,
+  "steps_per_site": 50000,
+  "warmup": 20000000,
+  "sample_every": 400,
+  "seed": 0,
+  "backend": "GPU scan_grid_gpu (run_ensemble_cuda)",
+  "classifier": "classify_phase density-distribution (same as original fig2 params.json)",
+  "note": "Corner rerun (30 Aug): 54 (alpha,beta) points hidden behind the legend box in phase_diagram_full.png. Same protocol as the original L2000 fig2 (commit 8170bfb). Fills grid_full_recovered.npy before transposing."
+}

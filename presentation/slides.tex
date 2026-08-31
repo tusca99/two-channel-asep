@@ -652,10 +652,26 @@
 
 \begin{frame}
       \centering
-      \includegraphics[width=0.24\textwidth,keepaspectratio]{fig2/phase_diagram_full.png}
-      \includegraphics[width=0.24\textwidth,keepaspectratio]{fig2/phase_diagram_zoom.png}
+      \includegraphics[width=0.235\textwidth,keepaspectratio]{../results/L2000/fig2/phase_diagram_full_T_proj.png}
+      \includegraphics[width=0.235\textwidth,keepaspectratio]{../results/L2000/fig2/phase_diagram_zoom_T_proj.png}
   \includegraphics[width=0.5\textwidth,keepaspectratio]{../theory/fig2_original.png}\\
-  {\scriptsize Ours vs original (Pronina \& Kolomeisky 2007, Fig.\ 2)}
+  {\scriptsize Ours vs original (Pronina \& Kolomeisky 2007, Fig.\ 2) ---
+    same axis convention ($\beta$ on x, $\alpha$ on y); main deck figures
+    use ($\alpha$ on x, $\beta$ on y).}
+  \note{Transposed variant (axes swapped to match the paper: beta horizontal,
+    alpha vertical) of the SAME high-budget L=2000 grid (50k/site, 30-worker
+    CPU, 27 Aug bundle) behind the deck's phase-diagram figures ---
+    scripts/plot_fig2_transposed.py. Left: full space: LD at low beta, the
+    broken HD/LD band (red+orange) hugging the MFT dashed line but shifted to
+    LOWER beta --- the paper's key message, directly comparable to the
+    original panel (a). Right: zoom 0.2-0.4 vs the paper's panel (b): the
+    band edge lands near the paper's open diamonds. Data provenance: the
+    L2000 grid npy was lost; grids were recovered from the deck figures'
+    PNGs (exact discrete-label digitization) and the cells hidden under the
+    in-axes legend boxes were re-run on the GPU with the identical protocol
+    (params_corner_rerun.json; all LD) and pale-dot evidence confirms LD.
+    Main-deck phase diagram keeps alpha-on-x; this slide exists purely for
+    the side-by-side with the paper.}
 \end{frame}
 
 
